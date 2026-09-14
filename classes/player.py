@@ -1,4 +1,4 @@
-import pygame, random
+import pygame, random, math
 from classes.particle import Particle
 
 from load_sprite_sheets import load_sprite_sheets
@@ -38,8 +38,10 @@ class Player(pygame.sprite.Sprite):
         self.looking_backwards = False
 
         self.particles = pygame.sprite.Group()
+        self.particle_offset_y = 22
+        self.a = 90
 
-    def move (self, dx, dy):
+    def move (self, dx, dy):            
         self.rect.x += dx
         self.rect.y += dy
 
@@ -93,33 +95,39 @@ class Player(pygame.sprite.Sprite):
         self.handle_input()
         self.update_sprite()
         for i in range(1,5):
-            Particle(self.rect.centerx, self.rect.centery,
-                    random.randint(10,40)/10, -self.angle_direction, 
-                    random.randint(10,30)/10, random.randint(10,50)/10, 
+            Particle(self.rect.centerx, self.rect.centery + self.particle_offset_y,
+                    random.randint(10,40)/10, -self.angle_direction + random.randint(-20,20), 
+                    random.randint(10,30)/10 * self.speed / self.BASE_SPEED, random.randint(100,200)/10, 
                     (255,255,255), self.particles)
             
         for particle in self.particles:
             particle.loop()
 
     def update_sprite(self):
+        # simplify code later by having the move function use atan2 to get the angle of the next point on Cirno's moverment path and use it to calculate angle.
         if self.looking_straight:
             idle_type = self.IDLE_FORWARDS
             self.angle_direction = 90
+            self.particle_offset_y = 0
         else:
             idle_type = self.IDLE_FORWARDS_TURNED
-            self.angle_direction = 45 if self.direction == "right" else 135
+            self.angle_direction = 135 if self.direction == "right" else 45
+            self.particle_offset_y = 22
 
         if self.looking_backwards:
             if self.looking_straight:
                 idle_type = self.IDLE_BACKWARDS
                 self.angle_direction = -90
+                self.particle_offset_y = 0
             else:
                 idle_type = self.IDLE_BACKWARDS_TURNED
-                self.angle_direction = -45 if self.direction == "right" else -135
+                self.angle_direction = -135 if self.direction == "right" else -45
+
                     
         sprites = self.sprites[f"{idle_type}{self.direction}"]
         if self.x_velocity != 0:
             sprites = self.sprites[f"{self.MOVING}{self.direction}"]
+            self.angle_direction = 0 if self.direction == "right" else 180
             
         sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites) // 2
         self.animation_count += 1
@@ -127,14 +135,17 @@ class Player(pygame.sprite.Sprite):
 
         if ((self.moving_right or self.moving_left) and self.moving_up):
             self.image = self.sprites[f"{self.FLY_UP}{self.direction}"][4]
+            self.angle_direction = 135 if self.direction == "right" else 45
+            self.particle_offset_y = 11
 
         if ((self.moving_right or self.moving_left) and self.moving_down):
             self.image = self.sprites[f"{self.FLY_DOWN}{self.direction}"][4]
+            self.angle_direction = -135 if self.direction == "right" else -45
+            self.particle_offset_y = 11
 
 
         
 
     def draw(self, window):
-        for particle in self.particles:
-            particle.draw(window)
+        self.particles.draw(window)
         window.blit(self.image, self.rect)

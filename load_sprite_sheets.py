@@ -5,7 +5,7 @@ from os.path import isfile, join
 def flip (sprites):
     return [pygame.transform.flip(sprite, True, False) for sprite in sprites]
 
-def load_sprite_sheets(image_name, sprite_width=24, sprite_height=31, expected_cols=8, direction="right"):
+def load_sprite_sheets(image_name, sprite_width=24, sprite_height=32, expected_cols=8, direction="right"):
     path = f"assets/images/{image_name}"
     images = [f for f in listdir(path) if isfile(join(path, f))]
     all_sprites = {}
