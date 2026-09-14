@@ -16,7 +16,7 @@ class Player(pygame.sprite.Sprite):
     FLY_UP = "Cirno_row1_"
     FLY_DOWN = "Cirno_row3_"
 
-    def __init__(self, x, y):
+    def __init__(self, x, y, window):
         super().__init__()
         self.sprites = load_sprite_sheets("Cirno")
         self.image = self.sprites[f"{self.IDLE_FORWARDS}right"][0]
@@ -26,6 +26,8 @@ class Player(pygame.sprite.Sprite):
         self.direction = "right"
         self.animation_count = 0
         self.speed = 5
+
+        self.window = window
 
         self.angle_direction = 90
 
@@ -44,6 +46,8 @@ class Player(pygame.sprite.Sprite):
     def move (self, dx, dy):            
         self.rect.x += dx
         self.rect.y += dy
+        self.rect.x = max(min(self.rect.x, self.window.width-48), -12)
+        self.rect.y = max(min(self.rect.y, self.window.height-66), 0)
 
     def set_direction(self, dir):
         self.looking_straight = False
@@ -146,6 +150,6 @@ class Player(pygame.sprite.Sprite):
 
         
 
-    def draw(self, window):
-        self.particles.draw(window)
-        window.blit(self.image, self.rect)
+    def draw(self):
+        self.particles.draw(self.window)
+        self.window.blit(self.image, self.rect)

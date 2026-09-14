@@ -17,13 +17,13 @@ programIcon = pygame.image.load('assets/images/Program_Icon/Fumo.png')
 pygame.display.set_icon(programIcon)
 
 def draw (window, player):
-    player.draw(window)
+    player.draw()
     pygame.display.update()
 
 def main(window):
     running = True
     clock = pygame.time.Clock()
-    player = Player(100, 100)
+    player = Player(100, 100, window)
     while running: 
         clock.tick(FPS)
         window.fill(BG_COLOR)
