@@ -23,7 +23,7 @@ def draw (window, player):
 def main(window):
     running = True
     clock = pygame.time.Clock()
-    player = Player(100, 100, 24, 31)
+    player = Player(100, 100)
     while running: 
         clock.tick(FPS)
         window.fill(BG_COLOR)
