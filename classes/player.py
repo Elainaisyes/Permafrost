@@ -106,7 +106,6 @@ class Player(pygame.sprite.Sprite):
 
         if ((self.moving_right or self.moving_left) and self.moving_down):
             self.image = self.sprites[f"{self.FLY_DOWN}{self.direction}"][4]
-        print(self.looking_backwards)
 
         
 
