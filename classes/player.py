@@ -1,11 +1,13 @@
 import pygame, random, math
 from classes.particle import Particle
+from classes.player_bullet import Player_Bullet
+from load_sprite_sheets import load_sprite_sheet_row, load_sprite_sheets
 
-from load_sprite_sheets import load_sprite_sheets
 
 class Player(pygame.sprite.Sprite):
     ANIMATION_DELAY = 3
     BASE_SPEED = 5
+    SHOOT_DELAY = 4
 
     # Sprite rows
     IDLE_FORWARDS = "Cirno_row0_"
@@ -16,9 +18,10 @@ class Player(pygame.sprite.Sprite):
     FLY_UP = "Cirno_row1_"
     FLY_DOWN = "Cirno_row3_"
 
+
     def __init__(self, x, y, window):
         super().__init__()
-        self.sprites = load_sprite_sheets("Cirno")
+        self.sprites = load_sprite_sheets("Cirno", 24, 32, 8, 2.5, "right")
         self.image = self.sprites[f"{self.IDLE_FORWARDS}right"][0]
         self.rect = self.image.get_rect(topleft=(x, y))
         self.x_velocity, self.y_velocity = 0, 0
@@ -38,10 +41,24 @@ class Player(pygame.sprite.Sprite):
         self.moving_down = False
         self.looking_straight = True
         self.looking_backwards = False
+        
+        self.shift_down = False
 
         self.particles = pygame.sprite.Group()
         self.particle_offset_y = 22
-        self.a = 90
+
+        self.bullets = pygame.sprite.Group()
+        self.bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*4, 8, 1.5, "bullet")
+        self.big_bullet_sprites = load_sprite_sheet_row("Projectiles", 32, 32, 8, 9 + 16 * 7, 8, 1.25, "big_bullet")
+        self.shoot_count = self.SHOOT_DELAY-1
+        self.bullet_offset = 24
+
+        self.left_big_bullet = Player_Bullet(self.rect.centerx - self.bullet_offset - 24, self.rect.centery - 48,
+                                             self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
+                                             0, False, self.bullets)
+        self.right_big_bullet = Player_Bullet(self.rect.centerx + self.bullet_offset, self.rect.centery - 48, 
+                                              self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
+                                              0, False, self.bullets)
 
     def move (self, dx, dy):            
         self.rect.x += dx
@@ -64,11 +81,19 @@ class Player(pygame.sprite.Sprite):
         self.moving_right = False
         self.moving_up = False
         self.moving_down = False
+        speed = self.BASE_SPEED
+        self.shift_down = False
+        
 
         if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
-            self.speed = self.BASE_SPEED / 2
-        else:
-            self.speed = self.BASE_SPEED
+            speed /= 2
+            self.shift_down = True
+        
+        if (self.moving_right or self.moving_left) and (self.moving_up or self.moving_down):
+            # Equalizes diagnol movement
+            speed *= math.sqrt(2)/2
+
+        self.speed = speed
 
         if keys[pygame.K_LEFT] or keys[pygame.K_a]:
             self.x_velocity = -self.speed
@@ -94,6 +119,19 @@ class Player(pygame.sprite.Sprite):
             self.looking_backwards = True
 
 
+        self.bullet_offset = 24 if not self.shift_down else 12
+        if keys[pygame.K_SPACE] or keys[pygame.K_e]:
+            self.shoot_count += 1
+            if self.shoot_count % self.SHOOT_DELAY == 0:
+                Player_Bullet(self.rect.centerx-self.bullet_offset-24, self.rect.centery - 48,
+                               self.bullet_sprites["Projectiles_bullet"][7], self.window,
+                               10, True, self.bullets)
+                Player_Bullet(self.rect.centerx+self.bullet_offset, self.rect.centery - 48,
+                               self.bullet_sprites["Projectiles_bullet"][7], self.window,
+                               10, True, self.bullets)
+
+
+
     def loop(self):
         self.move(self.x_velocity, self.y_velocity)
         self.handle_input()
@@ -106,9 +144,16 @@ class Player(pygame.sprite.Sprite):
             
         for particle in self.particles:
             particle.loop()
+        
+        self.left_big_bullet.rect.centerx = self.rect.centerx - self.bullet_offset - 24 + 12
+        self.right_big_bullet.rect.centerx = self.rect.centerx + self.bullet_offset + 24 - 12
+        self.left_big_bullet.rect.centery, self.right_big_bullet.rect.centery = self.rect.centery - 48, self.rect.centery - 48
+
+
+        for bullets in self.bullets:
+            bullets.loop()
 
     def update_sprite(self):
-        # simplify code later by having the move function use atan2 to get the angle of the next point on Cirno's moverment path and use it to calculate angle.
         if self.looking_straight:
             idle_type = self.IDLE_FORWARDS
             self.angle_direction = 90
@@ -147,9 +192,13 @@ class Player(pygame.sprite.Sprite):
             self.angle_direction = -135 if self.direction == "right" else -45
             self.particle_offset_y = 11
 
-
-        
-
     def draw(self):
         self.particles.draw(self.window)
+        
+        for bullet in self.bullets:
+            bullet.draw(self.window)
+
+        for bullet in sorted(self.bullets, key=lambda s: s.rect.bottom):
+            bullet.draw(self.window)
+
         self.window.blit(self.image, self.rect)
