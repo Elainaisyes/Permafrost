@@ -12,11 +12,13 @@ class Particle (pygame.sprite.Sprite):
         self.speed = speed
         self.decay_rate = decay_rate
         self.color = color
+        self.alpha = 255
         self.build_image()
 
     def build_image(self):
         diameter = max(1, int(self.current_radius * 2)) 
         self.image = pygame.Surface((diameter, diameter), pygame.SRCALPHA)
+        self.image.set_alpha(self.alpha)
         pygame.draw.circle(self.image, self.color, (diameter // 2, diameter // 2), max(1, int(self.current_radius)))
         self.rect = self.image.get_rect(center=(round(self.posX), round(self.posY)))
 
