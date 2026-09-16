@@ -1,6 +1,6 @@
 import pygame, random
 from classes.particle import Particle
-from load_sprite_sheets import load_sprite_sheet_row
+from util.load_sprite_sheets import load_sprite_sheet_row
 
 class Player_Bullet(pygame.sprite.Sprite):
     def __init__(self, x, y, image, window, y_velocity = 10, damaging = True, create_particles=True, *groups):

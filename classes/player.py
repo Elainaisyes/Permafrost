@@ -1,7 +1,7 @@
 import pygame, random, math
 from classes.particle import Particle
 from classes.player_bullet import Player_Bullet
-from load_sprite_sheets import load_sprite_sheet_row, load_sprite_sheets
+from util.load_sprite_sheets import load_sprite_sheet_row, load_sprite_sheets
 
 def lerp(start, end, multiplier):
     return start + (end - start) * multiplier
@@ -58,16 +58,17 @@ class Player(pygame.sprite.Sprite):
         self.big_bullet_sprites = load_sprite_sheet_row("Projectiles", 32, 32, 8, 9 + 16 * 7, 8, 1, "big_bullet")
         self.marker_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*3, 8, 0.7, "marker")
         self.shoot_count = self.SHOOT_DELAY-1
-        self.bullet_offset = 16
+        self.bullet_offset_x = 24
+        self.bullet_offset_y = 32
 
         self.shift_hitbox_marker = Player_Bullet(self.rect.centerx-10, self.rect.centery-10, 
                                                  self.marker_sprites["Projectiles_marker"][7], self.window,
                                                  0, False, False)
         
-        self.left_big_bullet = Player_Bullet(self.rect.centerx - self.bullet_offset - 24, self.rect.centery - 48,
+        self.left_big_bullet = Player_Bullet(self.rect.centerx - self.bullet_offset_x - 24, self.rect.centery - 48 + self.bullet_offset_y,
                                              self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
                                              0, False, True, self.bullets)
-        self.right_big_bullet = Player_Bullet(self.rect.centerx + self.bullet_offset, self.rect.centery - 48, 
+        self.right_big_bullet = Player_Bullet(self.rect.centerx + self.bullet_offset_x, self.rect.centery - 48 + self.bullet_offset_y, 
                                               self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
                                               0, False, True, self.bullets)
 
@@ -77,13 +78,13 @@ class Player(pygame.sprite.Sprite):
 
         bullet_width, bullet_height = (self.big_bullet_sprites["Projectiles_big_bullet"][4].get_size())
 
-        min_x = self.bullet_offset + bullet_width/2 - self.rect.width//2 + 8
-        max_x = (self.screen_width - self.bullet_offset - 12
+        min_x = self.bullet_offset_x + bullet_width/2 - self.rect.width//2 + 8
+        max_x = (self.screen_width - self.bullet_offset_x - 12
                   - bullet_width/2 - self.rect.width//2)
 
         self.x_pos = max(min(self.x_pos, max_x), min_x)
         self.y_pos = max(min(self.y_pos, self.window.height - self.rect.height/2
-                               + 48 - bullet_height), 28)
+                               + 48 - bullet_height*2), 28-self.bullet_offset_y)
         
         self.rect.x = round(self.x_pos)
         self.rect.y = round(self.y_pos)
@@ -141,15 +142,17 @@ class Player(pygame.sprite.Sprite):
             self.looking_backwards = True
 
 
-        desired_bullet_offset = 16 if not self.shift_down else 4
-        self.bullet_offset = lerp(self.bullet_offset, desired_bullet_offset, 0.2)
+        desired_bullet_offset_x = 24 if not self.shift_down else 4
+        desired_bullet_offset_y = 32 if not self.shift_down else 0
+        self.bullet_offset_x = lerp(self.bullet_offset_x, desired_bullet_offset_x, 0.2)
+        self.bullet_offset_y = lerp(self.bullet_offset_y, desired_bullet_offset_y, 0.2)
         if keys[pygame.K_SPACE] or keys[pygame.K_z]:
             self.shoot_count += 1
             if self.shoot_count % self.SHOOT_DELAY == 0:
-                Player_Bullet(self.rect.centerx-self.bullet_offset-22, self.rect.centery - 48,
+                Player_Bullet(self.rect.centerx-self.bullet_offset_x-22, self.rect.centery - 48 + self.bullet_offset_y,
                                self.bullet_sprites["Projectiles_bullet"][7], self.window,
                                10, True, True, self.bullets)
-                Player_Bullet(self.rect.centerx+self.bullet_offset+2, self.rect.centery - 48,
+                Player_Bullet(self.rect.centerx+self.bullet_offset_x+2, self.rect.centery - 48 + self.bullet_offset_y,
                                self.bullet_sprites["Projectiles_bullet"][7], self.window,
                                10, True, True, self.bullets)
 
@@ -172,9 +175,9 @@ class Player(pygame.sprite.Sprite):
             particle.alpha = self.alpha
             particle.loop()
         
-        self.left_big_bullet.rect.centerx = self.rect.centerx - self.bullet_offset - 24 + 12
-        self.right_big_bullet.rect.centerx = self.rect.centerx + self.bullet_offset + 24 - 12
-        self.left_big_bullet.rect.centery, self.right_big_bullet.rect.centery = self.rect.centery - 48, self.rect.centery - 48
+        self.left_big_bullet.rect.centerx = self.rect.centerx - self.bullet_offset_x - 24 + 12
+        self.right_big_bullet.rect.centerx = self.rect.centerx + self.bullet_offset_x + 24 - 12
+        self.left_big_bullet.rect.centery, self.right_big_bullet.rect.centery = self.rect.centery - 48 + self.bullet_offset_y, self.rect.centery - 48 + self.bullet_offset_y
 
         for bullet in self.bullets:
             if not bullet.damaging and bullet.create_particles:

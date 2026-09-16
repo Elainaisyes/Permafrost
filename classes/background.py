@@ -1,11 +1,11 @@
 import pygame
 
 class Background (pygame.sprite.Sprite):
-    def __init__(self, x, y, width, height, image, window):
+    def __init__(self, x, y, background_width, background_height, image, window):
         super().__init__()
         self.background = pygame.image.load(f'assets/images/Window_Background/{image}').convert_alpha()
-        self.rect = pygame.Rect(x, y, width, height)
-        self.background = pygame.transform.smoothscale(self.background, (width, height))
+        self.rect = pygame.Rect(x, y, background_width, background_height)
+        self.background = pygame.transform.smoothscale(self.background, (background_width, background_height))
         self.window = window
 
     def draw(self):
