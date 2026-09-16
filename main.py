@@ -16,7 +16,6 @@ SIDEBAR_WIDTH = WIDTH * 0.4
 GAME_WIDTH = WIDTH-SIDEBAR_WIDTH
 GAME_NAME = "Permafrost"
 FPS = 60
-LETTER_SIZE = 16
 
 window = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption(GAME_NAME)
@@ -24,13 +23,28 @@ pygame.display.set_caption(GAME_NAME)
 programIcon = pygame.image.load('assets/images/Program_Icon/Fumo.png')
 pygame.display.set_icon(programIcon)
 
-LETTERS_DICT = return_letters()
 letters = pygame.sprite.Group()
-DEFAULT_TEXT_FORMAT = (LETTERS_DICT, LETTER_SIZE, 1.125, window, letters)
+LETTERS_DICT = return_letters()
+LETTER_SIZE = 16
+DEFAULT_TEXT_SETUP = (LETTERS_DICT, LETTER_SIZE, window, letters)
 
 main_background = Background(0, 0, WIDTH-SIDEBAR_WIDTH, HEIGHT, 'Game_Background.png', window)
 sidebar = Background(WIDTH-SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT, 'Sidebar_Background.png', window)
-set_text("Flandre Scarlet", 200, 200, *DEFAULT_TEXT_FORMAT)
+
+set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, 1.5, 1, (255,255,35,255))
+set_text("9", 190, 18, *DEFAULT_TEXT_SETUP, 1, 1.5, (255,255,100,255))
+
+set_text("HiScore", GAME_WIDTH + 20, 100, *DEFAULT_TEXT_SETUP, 1.125, 1)
+set_text("012673632", GAME_WIDTH + 20 + 130, 98, *DEFAULT_TEXT_SETUP, 0.8, 1.25)
+set_text("Score", GAME_WIDTH + 20, 140, *DEFAULT_TEXT_SETUP, 1.125, 1)
+set_text("927397625", GAME_WIDTH + 20 + 130, 138, *DEFAULT_TEXT_SETUP, 0.8, 1.25)
+
+set_text("Player", GAME_WIDTH + 20, 220, *DEFAULT_TEXT_SETUP, 1.125, 1)
+set_text("Bomb", GAME_WIDTH + 20, 260, *DEFAULT_TEXT_SETUP, 1.125, 1)
+
+set_text("Power", GAME_WIDTH + 20, 340, *DEFAULT_TEXT_SETUP, 1.125, 1)
+set_text("Graze", GAME_WIDTH + 20, 380, *DEFAULT_TEXT_SETUP, 1.125, 1)
+
 def draw (window, player):
     main_background.draw()
     sidebar.draw()
@@ -41,7 +55,7 @@ def draw (window, player):
 def main(window):
     running = True
     clock = pygame.time.Clock()
-    player = Player(GAME_WIDTH // 2-32, HEIGHT // 2, window, GAME_WIDTH)
+    player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
     while running: 
         clock.tick(FPS)
         window.fill(BG_COLOR)
