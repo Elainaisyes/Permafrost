@@ -27,7 +27,7 @@ class Player_Bullet(pygame.sprite.Sprite):
             else:
                 for i in range(1, 5):
                     Particle(self.rect.centerx, self.rect.centery, random.randint(10,40)/10, random.randint(1,360), 
-                            random.randint(10,30)/10 * speed_multiplier, random.randint(200,300)/10, (255,255,255), self.particles) 
+                            random.randint(10,20)/10 * speed_multiplier, random.randint(200,300)/10, (255,255,255), self.particles) 
         
             for particle in self.particles:
                 particle.loop()

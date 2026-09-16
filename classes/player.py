@@ -3,9 +3,12 @@ from classes.particle import Particle
 from classes.player_bullet import Player_Bullet
 from load_sprite_sheets import load_sprite_sheet_row, load_sprite_sheets
 
+def lerp(start, end, multiplier):
+    return start + (end - start) * multiplier
+
 class Player(pygame.sprite.Sprite):
     ANIMATION_DELAY = 3
-    BASE_SPEED = 5
+    BASE_SPEED = 4
     SHOOT_DELAY = 4
 
     # Sprite rows
@@ -20,14 +23,17 @@ class Player(pygame.sprite.Sprite):
 
     def __init__(self, x, y, window, screen_width=600):
         super().__init__()
-        self.sprites = load_sprite_sheets("Cirno", 24, 32, 8, 2.5, "right")
+        self.sprites = load_sprite_sheets("Cirno", 24, 32, 8, 2, "right")
         self.image = self.sprites[f"{self.IDLE_FORWARDS}right"][0]
-        self.rect = self.image.get_rect(topleft=(x, y))
+        self.x_pos = float(x)
+        self.y_pos = float(y)
+        self.rect = self.image.get_rect(topleft=(self.x_pos, self.y_pos))
         self.x_velocity, self.y_velocity = 0, 0
         self.mask = None
         self.direction = "right"
         self.animation_count = 0
-        self.speed = 5
+        self.speed = self.BASE_SPEED
+        self.alpha = 255
 
         self.window = window
         self.screen_width = screen_width
@@ -48,11 +54,11 @@ class Player(pygame.sprite.Sprite):
         self.particle_offset_y = 22
 
         self.bullets = pygame.sprite.Group()
-        self.bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*4, 8, 1.5, "bullet")
-        self.big_bullet_sprites = load_sprite_sheet_row("Projectiles", 32, 32, 8, 9 + 16 * 7, 8, 1.25, "big_bullet")
-        self.marker_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*3, 8, 0.8, "marker")
+        self.bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*4, 8, 1.25, "bullet")
+        self.big_bullet_sprites = load_sprite_sheet_row("Projectiles", 32, 32, 8, 9 + 16 * 7, 8, 1, "big_bullet")
+        self.marker_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*3, 8, 0.7, "marker")
         self.shoot_count = self.SHOOT_DELAY-1
-        self.bullet_offset = 24
+        self.bullet_offset = 16
 
         self.shift_hitbox_marker = Player_Bullet(self.rect.centerx-10, self.rect.centery-10, 
                                                  self.marker_sprites["Projectiles_marker"][7], self.window,
@@ -66,10 +72,21 @@ class Player(pygame.sprite.Sprite):
                                               0, False, True, self.bullets)
 
     def move (self, dx, dy):            
-        self.rect.x += dx
-        self.rect.y += dy
-        self.rect.x = max(min(self.rect.x, self.screen_width-48-32), -12+32)
-        self.rect.y = max(min(self.rect.y, self.window.height-66), 28)
+        self.x_pos += dx
+        self.y_pos += dy
+
+        bullet_width, bullet_height = (self.big_bullet_sprites["Projectiles_big_bullet"][4].get_size())
+
+        min_x = self.bullet_offset + bullet_width/2 - self.rect.width//2 + 8
+        max_x = (self.screen_width - self.bullet_offset - 12
+                  - bullet_width/2 - self.rect.width//2)
+
+        self.x_pos = max(min(self.x_pos, max_x), min_x)
+        self.y_pos = max(min(self.y_pos, self.window.height - self.rect.height/2
+                               + 48 - bullet_height), 28)
+        
+        self.rect.x = round(self.x_pos)
+        self.rect.y = round(self.y_pos)
 
     def set_direction(self, dir):
         self.looking_straight = False
@@ -91,7 +108,7 @@ class Player(pygame.sprite.Sprite):
         
 
         if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
-            speed /= 2
+            speed /= 1.6
             self.shift_down = True
         
         if (self.moving_right or self.moving_left) and (self.moving_up or self.moving_down):
@@ -124,32 +141,35 @@ class Player(pygame.sprite.Sprite):
             self.looking_backwards = True
 
 
-        self.bullet_offset = 24 if not self.shift_down else 12
+        desired_bullet_offset = 16 if not self.shift_down else 4
+        self.bullet_offset = lerp(self.bullet_offset, desired_bullet_offset, 0.2)
         if keys[pygame.K_SPACE] or keys[pygame.K_z]:
             self.shoot_count += 1
             if self.shoot_count % self.SHOOT_DELAY == 0:
-                Player_Bullet(self.rect.centerx-self.bullet_offset-24, self.rect.centery - 48,
+                Player_Bullet(self.rect.centerx-self.bullet_offset-22, self.rect.centery - 48,
                                self.bullet_sprites["Projectiles_bullet"][7], self.window,
                                10, True, True, self.bullets)
-                Player_Bullet(self.rect.centerx+self.bullet_offset, self.rect.centery - 48,
+                Player_Bullet(self.rect.centerx+self.bullet_offset+2, self.rect.centery - 48,
                                self.bullet_sprites["Projectiles_bullet"][7], self.window,
                                10, True, True, self.bullets)
 
 
 
     def loop(self):
-        self.move(self.x_velocity, self.y_velocity)
         self.handle_input()
+        self.move(self.x_velocity, self.y_velocity)
         self.update_sprite()
-        self.image.set_alpha(200 if self.shift_down else 255)
+        desired_alpha = 200 if self.shift_down else 255
+        self.alpha = lerp(self.alpha, desired_alpha, 0.2)
+        self.image.set_alpha(self.alpha)
         for i in range(1,5):
             Particle(self.rect.centerx, self.rect.centery + self.particle_offset_y,
                     random.randint(10,40)/10, -self.angle_direction + random.randint(-20,20), 
-                    random.randint(10,30)/10 * self.speed / self.BASE_SPEED, random.randint(100,200)/10, 
+                    random.randint(10,30)/10 * self.speed / self.BASE_SPEED, random.randint(120,240)/10, 
                     (255,255,255), self.particles)
             
         for particle in self.particles:
-            particle.alpha = 200 if self.shift_down else 255
+            particle.alpha = self.alpha
             particle.loop()
         
         self.left_big_bullet.rect.centerx = self.rect.centerx - self.bullet_offset - 24 + 12
@@ -158,11 +178,14 @@ class Player(pygame.sprite.Sprite):
 
         for bullet in self.bullets:
             if not bullet.damaging and bullet.create_particles:
-                bullet.image.set_alpha(200 if self.shift_down else 255)
+                bullet.image.set_alpha(self.alpha)
             bullet.loop()
         self.shift_hitbox_marker.loop()
         self.shift_hitbox_marker.rect.centerx = self.rect.centerx
         self.shift_hitbox_marker.rect.centery = self.rect.centery
+        hitbox_desired_alpha = 0 if not self.shift_down else 255
+        hitbox_alpha = self.shift_hitbox_marker.image.get_alpha()
+        self.shift_hitbox_marker.image.set_alpha(lerp(hitbox_alpha, hitbox_desired_alpha, 0.15))
 
     def update_sprite(self):
         if self.looking_straight:
@@ -172,7 +195,7 @@ class Player(pygame.sprite.Sprite):
         else:
             idle_type = self.IDLE_FORWARDS_TURNED
             self.angle_direction = 135 if self.direction == "right" else 45
-            self.particle_offset_y = 22
+            self.particle_offset_y = 18
 
         if self.looking_backwards:
             if self.looking_straight:
@@ -196,12 +219,12 @@ class Player(pygame.sprite.Sprite):
         if ((self.moving_right or self.moving_left) and self.moving_up):
             self.image = self.sprites[f"{self.FLY_UP}{self.direction}"][4]
             self.angle_direction = 135 if self.direction == "right" else 45
-            self.particle_offset_y = 11
+            self.particle_offset_y = 9
 
         if ((self.moving_right or self.moving_left) and self.moving_down):
             self.image = self.sprites[f"{self.FLY_DOWN}{self.direction}"][4]
             self.angle_direction = -135 if self.direction == "right" else -45
-            self.particle_offset_y = 11
+            self.particle_offset_y = 9
 
     def draw(self):
         self.particles.draw(self.window)
@@ -210,5 +233,4 @@ class Player(pygame.sprite.Sprite):
             bullet.draw(self.window)
 
         self.window.blit(self.image, self.rect)
-        if self.shift_down: 
-            self.shift_hitbox_marker.draw(self.window)
+        self.shift_hitbox_marker.draw(self.window)
