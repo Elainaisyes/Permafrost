@@ -2,6 +2,7 @@ import pygame, random, math
 from classes.particle import Particle
 from classes.player_bullet import Player_Bullet
 from util.load_sprite_sheets import load_sprite_sheet_row, load_sprite_sheets
+from util.play_sound import play_sound
 
 def lerp(start, end, multiplier):
     return start + (end - start) * multiplier
@@ -71,6 +72,10 @@ class Player(pygame.sprite.Sprite):
         self.right_big_bullet = Player_Bullet(self.rect.centerx + self.bullet_offset_x, self.rect.centery - 48 + self.bullet_offset_y, 
                                               self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
                                               0, False, True, self.bullets)
+
+        self.player_shoot_sfx = pygame.mixer.Sound("assets/audios/sfx/tan00.wav")
+        self.graze_sfx = pygame.mixer.Sound("assets/audios/sfx/graze.wav")
+        self.bullet_hit = pygame.mixer.Sound("assets/audios/sfx/damage00.wav")
 
     def move (self, dx, dy):            
         self.x_pos += dx
@@ -149,6 +154,7 @@ class Player(pygame.sprite.Sprite):
         if keys[pygame.K_SPACE] or keys[pygame.K_z]:
             self.shoot_count += 1
             if self.shoot_count % self.SHOOT_DELAY == 0:
+                play_sound(self.player_shoot_sfx, 0.1)
                 Player_Bullet(self.rect.centerx-self.bullet_offset_x-22, self.rect.centery - 48 + self.bullet_offset_y,
                                self.bullet_sprites["Projectiles_bullet"][7], self.window,
                                10, True, True, self.bullets)

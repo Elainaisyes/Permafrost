@@ -1,14 +1,20 @@
 import pygame
-from os import listdir
-from os.path import isfile, join
 from classes.player import Player
 from classes.background import Background
-from classes.letter import Letter
-from util.load_sprite_sheets import load_sprite_sheets
 from util.return_letters import return_letters
 from util.set_text import set_text
 
+# Default buffer is often 2048; reducing to 512 eliminates lag
+pygame.mixer.pre_init(44100, -16, 2, 512)
+
 pygame.init()
+
+pygame.mixer.init()
+pygame.mixer.set_num_channels(64)
+
+pygame.mixer.music.load("assets/audios/U.N. Owen Was Her.mp3")
+pygame.mixer.music.play(loops=-1, start=2.0, fade_ms=5000)
+pygame.mixer.music.set_volume(0.75)
 
 BG_COLOR = (0, 0, 0)
 WIDTH, HEIGHT = 1000, 750
