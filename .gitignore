@@ -1,0 +1,10 @@
+# Python temporary files
+__pycache__/
+*.py[cod]
+
+# SSH and Private Keys
+*.sh
+*.pem
+*.key
+id_rsa
+id_rsa.pub
