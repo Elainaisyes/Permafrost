@@ -1,15 +1,11 @@
 import pygame
 from classes.player import Player
 from classes.background import Background
-<<<<<<< Updated upstream
-=======
 from classes.basic_image import Basic_Image
-from util.load_sprite_sheets import load_sprite_sheets
->>>>>>> Stashed changes
 from util.return_letters import return_letters
 from util.set_text import set_text
 
-# Default buffer is often 2048; reducing to 512 eliminates lag
+# eliminates lag
 pygame.mixer.pre_init(44100, -16, 2, 512)
 
 pygame.init()
