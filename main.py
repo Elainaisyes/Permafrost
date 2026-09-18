@@ -1,6 +1,11 @@
 import pygame
 from classes.player import Player
 from classes.background import Background
+<<<<<<< Updated upstream
+=======
+from classes.basic_image import Basic_Image
+from util.load_sprite_sheets import load_sprite_sheets
+>>>>>>> Stashed changes
 from util.return_letters import return_letters
 from util.set_text import set_text
 
@@ -34,27 +39,28 @@ LETTERS_DICT = return_letters()
 LETTER_SIZE = 16
 DEFAULT_TEXT_SETUP = (LETTERS_DICT, LETTER_SIZE, window, letters)
 
+stars = pygame.sprite.Group()
+red_star = pygame.image.load("assets/images/Star/Red_Star.png").convert_alpha()
+green_star = pygame.image.load("assets/images/Star/Green_Star.png").convert_alpha()
+
+
 main_background = Background(0, 0, WIDTH-SIDEBAR_WIDTH, HEIGHT, 'Game_Background.png', window)
 sidebar = Background(WIDTH-SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT, 'Sidebar_Background.png', window)
 
-set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, 1.5, 1, (255,255,35,255))
-set_text("9", 190, 18, *DEFAULT_TEXT_SETUP, 1, 1.5, (255,255,100,255))
+def update_stars(player):
+    stars.empty()
 
-set_text("HiScore", GAME_WIDTH + 20, 100, *DEFAULT_TEXT_SETUP, 1.125, 1)
-set_text("012673632", GAME_WIDTH + 20 + 130, 98, *DEFAULT_TEXT_SETUP, 0.6, 1.25)
-set_text("Score", GAME_WIDTH + 20, 140, *DEFAULT_TEXT_SETUP, 1.125, 1)
-set_text("927397625", GAME_WIDTH + 20 + 130, 138, *DEFAULT_TEXT_SETUP, 0.6, 1.25)
+    for i in range(player.health):
+        Basic_Image(red_star, GAME_WIDTH + 140 + 26 * i, 215, 16, 16, 1.5, window, stars)
 
-set_text("Player", GAME_WIDTH + 20, 220, *DEFAULT_TEXT_SETUP, 1.125, 1)
-set_text("Bomb", GAME_WIDTH + 20, 260, *DEFAULT_TEXT_SETUP, 1.125, 1)
-
-set_text("Power", GAME_WIDTH + 20, 340, *DEFAULT_TEXT_SETUP, 1.125, 1)
-set_text("Graze", GAME_WIDTH + 20, 380, *DEFAULT_TEXT_SETUP, 1.125, 1)
+    for i in range(player.bombs):
+        Basic_Image(green_star, GAME_WIDTH + 140 + 26 * i, 255, 16, 16, 1.5, window, stars)
 
 def draw (window, player):
     main_background.draw()
-    sidebar.draw()
     player.draw()
+    sidebar.draw()
+    stars.draw(window)
     letters.draw(window)
     pygame.display.update()
 
@@ -62,12 +68,39 @@ def main(window):
     running = True
     clock = pygame.time.Clock()
     player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
+
+    set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, 1.5, 1, (255,255,35,255))
+    set_text("9", 200, 18, *DEFAULT_TEXT_SETUP, 1, 1.5, (255,255,100,255))
+
+    set_text("HiScore", GAME_WIDTH + 20, 100, *DEFAULT_TEXT_SETUP, 1.5, 1)
+    set_text(f"{(9 - len(str(player.highscore))) * "0" + str(player.highscore)}", GAME_WIDTH + 20 + 120, 98, *DEFAULT_TEXT_SETUP, 0.75, 1.25)
+    set_text("Score", GAME_WIDTH + 20, 140, *DEFAULT_TEXT_SETUP, 1.5, 1)
+    set_text(f"{(9 - len(str(player.score))) * "0" + str(player.score)}", GAME_WIDTH + 20 + 120, 138, *DEFAULT_TEXT_SETUP, 0.75, 1.25)
+
+    set_text("Player", GAME_WIDTH + 20, 220, *DEFAULT_TEXT_SETUP, 1.5, 1, (255, 88, 88))
+    set_text("Bomb", GAME_WIDTH + 20, 260, *DEFAULT_TEXT_SETUP, 1.5, 1, (67, 177, 86))
+
+    set_text("Power", GAME_WIDTH + 20, 340, *DEFAULT_TEXT_SETUP, 1.5, 1)
+    set_text("Graze", GAME_WIDTH + 20, 380, *DEFAULT_TEXT_SETUP, 1.5, 1)
+    set_text(f"{player.graze}", GAME_WIDTH + 20 + 120, 378, *DEFAULT_TEXT_SETUP, 0.75, 1.25)
+
+    # Optimization helpers, ensures no needless running
+    last_health = None
+    last_bombs = None
     while running: 
         clock.tick(FPS)
         window.fill(BG_COLOR)
+        if player.health != last_health or player.bombs != last_bombs:
+            update_stars(player)
+            last_health = player.health
+            last_bombs = player.bombs
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
 
         player.loop()
         draw(window, player)

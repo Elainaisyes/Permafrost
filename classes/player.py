@@ -40,6 +40,13 @@ class Player(pygame.sprite.Sprite):
         self.screen_width = screen_width
 
         self.angle_direction = 90
+        
+        self.highscore = 2827383
+        self.score = 0
+        self.health = 3
+        self.bombs = 3
+        self.power = 0
+        self.graze = 0
 
         # Used to set sprite positions
         self.moving_right = False
@@ -171,6 +178,8 @@ class Player(pygame.sprite.Sprite):
         desired_alpha = 200 if self.shift_down else 255
         self.alpha = lerp(self.alpha, desired_alpha, 0.2)
         self.image.set_alpha(self.alpha)
+
+        
         for i in range(1,5):
             Particle(self.rect.centerx, self.rect.centery + self.particle_offset_y,
                     random.randint(10,40)/10, -self.angle_direction + random.randint(-20,20), 
@@ -181,14 +190,16 @@ class Player(pygame.sprite.Sprite):
             particle.alpha = self.alpha
             particle.loop()
         
-        self.left_big_bullet.rect.centerx = self.rect.centerx - self.bullet_offset_x - 24 + 12
-        self.right_big_bullet.rect.centerx = self.rect.centerx + self.bullet_offset_x + 24 - 12
-        self.left_big_bullet.rect.centery, self.right_big_bullet.rect.centery = self.rect.centery - 48 + self.bullet_offset_y, self.rect.centery - 48 + self.bullet_offset_y
 
         for bullet in self.bullets:
             if not bullet.damaging and bullet.create_particles:
                 bullet.image.set_alpha(self.alpha)
             bullet.loop()
+
+        self.left_big_bullet.rect.centerx = self.rect.centerx - self.bullet_offset_x - 24 + 12
+        self.right_big_bullet.rect.centerx = self.rect.centerx + self.bullet_offset_x + 24 - 12
+        self.left_big_bullet.rect.centery, self.right_big_bullet.rect.centery = self.rect.centery - 48 + self.bullet_offset_y, self.rect.centery - 48 + self.bullet_offset_y
+
         self.shift_hitbox_marker.loop()
         self.shift_hitbox_marker.rect.centerx = self.rect.centerx
         self.shift_hitbox_marker.rect.centery = self.rect.centery
