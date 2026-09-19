@@ -1,5 +1,6 @@
 import pygame
 from classes.player import Player
+from classes.boss import Boss
 from classes.background import Background
 from classes.basic_image import Basic_Image
 from util.return_letters import return_letters
@@ -39,7 +40,6 @@ stars = pygame.sprite.Group()
 red_star = pygame.image.load("assets/images/Star/Red_Star.png").convert_alpha()
 green_star = pygame.image.load("assets/images/Star/Green_Star.png").convert_alpha()
 
-
 main_background = Background(0, 0, WIDTH-SIDEBAR_WIDTH, HEIGHT, 'Game_Background.png', window)
 sidebar = Background(WIDTH-SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT, 'Sidebar_Background.png', window)
 
@@ -52,9 +52,10 @@ def update_stars(player):
     for i in range(player.bombs):
         Basic_Image(green_star, GAME_WIDTH + 140 + 26 * i, 255, 16, 16, 1.5, window, stars)
 
-def draw (window, player):
+def draw (window, player, boss):
     main_background.draw()
     player.draw()
+    boss.draw()
     sidebar.draw()
     stars.draw(window)
     letters.draw(window)
@@ -64,6 +65,7 @@ def main(window):
     running = True
     clock = pygame.time.Clock()
     player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
+    boss = Boss(GAME_WIDTH // 2 - 38, 50, window, GAME_WIDTH)
 
     set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, 1.5, 1, (255,255,35,255))
     set_text("9", 200, 18, *DEFAULT_TEXT_SETUP, 1, 1.5, (255,255,100,255))
@@ -99,7 +101,8 @@ def main(window):
                     running = False
 
         player.loop()
-        draw(window, player)
+        boss.loop(player)
+        draw(window, player, boss)
 
 
     pygame.quit()
