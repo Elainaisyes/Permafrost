@@ -1,5 +1,16 @@
-import pygame, math
+import pygame, math, random
+from classes.basic_image import Basic_Image
 from util.load_sprite_sheets import load_sprite_sheets
+
+def lerp_angle(current, target, multiplier):
+    delta = (target - current) % 360
+    # Helps decide whether to turn clockwise or counter-clockwise
+    if delta > 180:
+        delta -= 360
+    elif delta < -180:
+        delta += 360
+
+    return current + delta * multiplier
 
 class Boss(pygame.sprite.Sprite):
     ANIMATION_DELAY = 4
@@ -27,31 +38,51 @@ class Boss(pygame.sprite.Sprite):
         self.angle_direction = 270
         self.direction = "right"
         self.speed = self.MAX_SPEED
-        self.desired_x, self.desired_y = 20,20
+        self.screen_width = screen_width
+        self.sprite_screen_center_x = (self.screen_width-self.rect.width/4)/2
+        self.desired_x, self.desired_y = self.sprite_screen_center_x, 750/4
 
         self.window = window
+        self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
+        self.aura = Basic_Image(self.aura_sprite, self.rect.x, self.rect.y, 61, 62, 2.5, self.window, color=(255, 88, 88))
 
-    def move(self, dx, dy, player):
-        target_x = player.x_pos - self.rect.centerx
-        target_y = player.y_pos - self.rect.centery
+    def move(self):
+        target_x = self.desired_x - self.rect.centerx
+        target_y = self.desired_y - self.rect.centery
         distance = math.hypot(target_x, target_y)
 
-        print(self.angle_direction)
-        if distance <= self.speed:
+        if distance <= 1:
             self.rect.center = (self.desired_x, self.desired_y)
             self.x_pos, self.y_pos = self.rect.topleft
             self.x_velocity = self.y_velocity = 0
-            self.angle_direction = -90
+            self.angle_direction = lerp_angle(self.angle_direction, -90, 0.2)
             return
 
-        self.angle_direction = math.degrees(math.atan2(-target_y, target_x))
+        desired_angle = math.degrees(math.atan2(-target_y, target_x))
 
-        self.x_pos += target_x / distance * self.speed
-        self.y_pos += target_y / distance * self.speed
+        if distance <= 30:
+            self.angle_direction = lerp_angle(self.angle_direction, -90, 0.2)
+        else:
+            self.angle_direction = lerp_angle(self.angle_direction, desired_angle, 0.25)
+
+        easing = max(0.25, min(1.0, distance / 90.0))
+        movement = self.speed * easing
+
+        if distance <= movement:
+            movement = distance
+            return
+
+        self.x_velocity = target_x / distance * movement
+        self.y_velocity = target_y / distance * movement
+
+        self.x_pos += self.x_velocity
+        self.y_pos += self.y_velocity
         self.rect.topleft = (round(self.x_pos), round(self.y_pos))
 
     def loop(self, player):
-        self.move(self.x_velocity, self.y_velocity, player)
+        self.move()
+        self.aura.rect.centerx = self.rect.x-self.rect.width/4
+        self.aura.rect.centery = self.rect.y+self.rect.height/8
         self.update_sprites()
 
     def update_sprites(self):
@@ -59,31 +90,29 @@ class Boss(pygame.sprite.Sprite):
 
         angle = self.angle_direction % 360
         sector = int((angle + 22.5) // 45) % 8
-        # add thediagnokl angles later, need to increase sector size
-        if sector == 0:
-            sprites = self.sprites[f"{self.MOVING}right"]
-        elif sector == 1:
-            sprites = self.sprites[f"{self.FLY_UP}right"]
-        elif sector == 2:
-            sprites = self.sprites[f"{self.IDLE_FORWARDS}right"]
-        elif sector == 3:
-            sprites = self.sprites[f"{self.FLY_UP}left"]
-        elif sector == 4:
-            sprites = self.sprites[f"{self.MOVING}left"]
-        elif sector == 5:
-            sprites = self.sprites[f"{self.FLY_DOWN}left"]
-        elif sector == 6:
-            sprites = self.sprites[f"{self.IDLE_BACKWARDS}right"]
-        elif sector == 7:
-            sprites = self.sprites[f"{self.FLY_DOWN}right"]
+
+        sprite_keys = [
+            f"{self.MOVING}right",                # 0: right
+            f"{self.IDLE_FORWARDS_TURNED}right",  # 1: up-right
+            f"{self.IDLE_FORWARDS}right",         # 2: up
+            f"{self.IDLE_FORWARDS_TURNED}left",   # 3: up-left
+            f"{self.MOVING}left",                 # 4: left
+            f"{self.IDLE_BACKWARDS_TURNED}left",  # 5: down-left
+            f"{self.IDLE_BACKWARDS}right",        # 6: down
+            f"{self.IDLE_BACKWARDS_TURNED}right", # 7: down-right
+        ]
+
+        sprites = self.sprites[sprite_keys[sector]]
             
             
         sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites) // 2
         self.animation_count += 1
-        self.image = sprites[sprite_index]
-
-        if sector % 2 == 1:
+        if False:
             self.image = sprites[4]
+        else:
+            self.image = sprites[sprite_index]
+
 
     def draw(self):
+        self.aura.draw()
         self.window.blit(self.image, self.rect)

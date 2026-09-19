@@ -1,4 +1,4 @@
-from classes.letter import Letter
+from classes.basic_image import Basic_Image
 
 def set_text(text, x, y, letters_dict, letter_size, window, group,
              spacing, scale_factor, color=None):
@@ -17,16 +17,16 @@ def set_text(text, x, y, letters_dict, letter_size, window, group,
         if character in {"m", "M"}:
             cursor_x += m_side_spacing
 
-        Letter(
+        Basic_Image(
             letters_dict[character],
             round(cursor_x),
             y,
             letter_size,
             letter_size,
             scale_factor,
-            color,
             window,
-            group
+            group,
+            color=color
         )
 
         cursor_x += default_amount
