@@ -54,6 +54,7 @@ def update_stars(player):
 
 def draw (window, player, boss):
     main_background.draw()
+    boss.aura.draw()
     player.draw()
     boss.draw()
     sidebar.draw()
@@ -78,8 +79,8 @@ def main(window):
     set_text("Player", GAME_WIDTH + 20, 220, *DEFAULT_TEXT_SETUP, 1.5, 1, (255, 88, 88))
     set_text("Bomb", GAME_WIDTH + 20, 260, *DEFAULT_TEXT_SETUP, 1.5, 1, (67, 177, 86))
 
-    set_text("Power", GAME_WIDTH + 20, 340, *DEFAULT_TEXT_SETUP, 1.5, 1)
-    set_text("Graze", GAME_WIDTH + 20, 380, *DEFAULT_TEXT_SETUP, 1.5, 1)
+    set_text("Power", GAME_WIDTH + 20, 340, *DEFAULT_TEXT_SETUP, 1.5, 1, (255, 138, 138))
+    set_text("Graze", GAME_WIDTH + 20, 380, *DEFAULT_TEXT_SETUP, 1.5, 1, (127, 237, 146))
     set_text(f"{player.graze}", GAME_WIDTH + 20 + 120, 378, *DEFAULT_TEXT_SETUP, 0.75, 1.25)
 
     # Optimization helpers, ensures no needless running

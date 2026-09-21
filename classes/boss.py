@@ -1,5 +1,6 @@
 import pygame, math, random
 from classes.basic_image import Basic_Image
+from classes.particle import Particle
 from util.load_sprite_sheets import load_sprite_sheets
 
 def lerp_angle(current, target, multiplier):
@@ -44,7 +45,13 @@ class Boss(pygame.sprite.Sprite):
 
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
-        self.aura = Basic_Image(self.aura_sprite, self.rect.x, self.rect.y, 61, 62, 2.5, self.window, color=(255, 88, 88))
+        self.aura = Basic_Image(self.aura_sprite, self.rect.x, self.rect.y, 500, 500, 0.42, self.window, color=(255,88,88,188))
+        self.aura.original_image = self.aura.image
+        self.aura_rotation = 0
+        self.aura_rotation_speed = 2
+
+        self.particles = pygame.sprite.Group()
+        self.particle_offset_y = 0
 
     def move(self):
         target_x = self.desired_x - self.rect.centerx
@@ -81,15 +88,41 @@ class Boss(pygame.sprite.Sprite):
 
     def loop(self, player):
         self.move()
-        self.aura.rect.centerx = self.rect.x-self.rect.width/4
-        self.aura.rect.centery = self.rect.y+self.rect.height/8
+        for particle in self.particles:
+            particle.loop()
+
+        for i in range(1,5):
+            Particle(self.rect.centerx, self.rect.centery + self.particle_offset_y,
+                    random.randint(10,40)/10, -self.angle_direction + random.randint(-20,20), 
+                    random.randint(10,30)/10 * self.speed / self.MAX_SPEED, random.randint(120,240)/10, 
+                    (255,138,138), self.particles)
+
+        self.update_aura()
         self.update_sprites()
+
+    def update_aura(self):
+        self.aura.image = pygame.transform.rotate(self.aura.original_image, self.aura_rotation)
+        self.aura_rotation -= self.aura_rotation_speed
+        old_center = self.aura.rect.center
+        self.aura.rect = self.aura.image.get_rect(center=old_center)
+
+        boss_center_x = self.x_pos + self.rect.width / 2
+        boss_center_y = self.y_pos + self.rect.height / 2
+        self.aura.rect.centerx = round(boss_center_x)
+        self.aura.rect.centery = round(boss_center_y) 
 
     def update_sprites(self):
         sprites = self.sprites[f"{self.IDLE_BACKWARDS}{self.direction}"]
 
         angle = self.angle_direction % 360
         sector = int((angle + 22.5) // 45) % 8
+
+        if sector in {1, 3, 5, 7}:
+            self.particle_offset_y = 18
+        elif sector in {2, 6}:
+            self.particle_offset_y = 9
+        else: 
+            self.particle_offset_y = 0
 
         sprite_keys = [
             f"{self.MOVING}right",                # 0: right
@@ -107,12 +140,9 @@ class Boss(pygame.sprite.Sprite):
             
         sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites) // 2
         self.animation_count += 1
-        if False:
-            self.image = sprites[4]
-        else:
-            self.image = sprites[sprite_index]
+        self.image = sprites[sprite_index]
 
 
     def draw(self):
-        self.aura.draw()
+        self.particles.draw(self.window)
         self.window.blit(self.image, self.rect)
