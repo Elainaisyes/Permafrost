@@ -42,7 +42,7 @@ class Player(pygame.sprite.Sprite):
         self.angle_direction = 90
         
         self.highscore = 2827383
-        self.score = 0
+        self.score = 200
         self.health = 3
         self.bombs = 3
         self.power = 0
@@ -179,6 +179,7 @@ class Player(pygame.sprite.Sprite):
         self.alpha = lerp(self.alpha, desired_alpha, 0.2)
         self.image.set_alpha(self.alpha)
 
+        self.power = max(0, min(125, self.power+1))
         
         for i in range(1,5):
             Particle(self.rect.centerx, self.rect.centery + self.particle_offset_y,

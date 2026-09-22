@@ -43,6 +43,8 @@ class Boss(pygame.sprite.Sprite):
         self.sprite_screen_center_x = (self.screen_width-self.rect.width/4)/2
         self.desired_x, self.desired_y = self.sprite_screen_center_x, 750/4
 
+        self.attacks_left = 9
+
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
         self.aura = Basic_Image(self.aura_sprite, self.rect.x, self.rect.y, 500, 500, 0.42, self.window, color=(255,88,88,188))
