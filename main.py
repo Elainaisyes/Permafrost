@@ -1,4 +1,4 @@
-import pygame
+import pygame, os
 from classes.player import Player
 from classes.boss import Boss
 from classes.background import Background
