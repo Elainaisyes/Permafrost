@@ -7,7 +7,7 @@ class Player_Bullet(pygame.sprite.Sprite):
         super().__init__(*groups)
         self.image = image
         self.rect = self.image.get_rect(topleft=(x, y))
-        self.mask = None
+        self.mask = pygame.mask.from_surface(self.image)
         self.y_velocity = y_velocity
         self.damaging = damaging
         self.create_particles = create_particles

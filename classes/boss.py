@@ -34,6 +34,7 @@ class Boss(pygame.sprite.Sprite):
         self.x_pos = float(x)
         self.y_pos = float(y)
         self.rect = self.image.get_rect(topleft=(self.x_pos, self.y_pos))
+        self.mask = pygame.mask.from_surface(self.image)
         self.x_velocity, self.y_velocity = self.MAX_SPEED, self.MAX_SPEED
         self.animation_count = 0
         self.angle_direction = 270
@@ -44,6 +45,7 @@ class Boss(pygame.sprite.Sprite):
         self.desired_x, self.desired_y = self.sprite_screen_center_x, 750/4
 
         self.attacks_left = 9
+        self.health = 1000
 
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
@@ -102,6 +104,11 @@ class Boss(pygame.sprite.Sprite):
         self.update_aura()
         self.update_sprites()
 
+        player_bullet_collided = pygame.sprite.spritecollide(self, player.bullets, True, pygame.sprite.collide_mask)
+        if player_bullet_collided:
+            self.health -= player.damage
+            print(self.health)
+
     def update_aura(self):
         self.aura.image = pygame.transform.rotate(self.aura.original_image, self.aura_rotation)
         self.aura_rotation -= self.aura_rotation_speed
@@ -143,6 +150,7 @@ class Boss(pygame.sprite.Sprite):
         sprite_index = (self.animation_count // self.ANIMATION_DELAY) % len(sprites) // 2
         self.animation_count += 1
         self.image = sprites[sprite_index]
+        self.mask = pygame.mask.from_surface(self.image)
 
 
     def draw(self):
