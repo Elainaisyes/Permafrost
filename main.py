@@ -154,7 +154,7 @@ def main(window):
         last_attacks_left = basic_text_update(last_attacks_left, boss.attacks_left, attacks_left_text, 
                           str(boss.attacks_left), 190, 16, *DEFAULT_TEXT_SETUP, attacks_left_text, 1, 1.5, (255,255,160,255))
 
-        phase_timer_color = (190,220,255,255) if boss.phase_timer > 19 else (180,160,225,255) if boss.phase_timer > 9 else (255,130,170,255) if boss.phase_timer > 4 else (255,88,88,)
+        phase_timer_color = (190,220,255,255) if boss.phase_timer > 19 else (180,160,225,255) if boss.phase_timer > 9 else (255,130,170,255) if boss.phase_timer > 4 else (255,88,88)
         last_phase_timer = basic_text_update(last_phase_timer, boss.phase_timer, phase_timer_text, 
                           str(boss.phase_timer).zfill(2), GAME_WIDTH-67.5, 16, *DEFAULT_TEXT_SETUP, phase_timer_text, 1, 1.5, phase_timer_color)
         

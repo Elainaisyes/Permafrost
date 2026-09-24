@@ -146,7 +146,7 @@ class Boss(pygame.sprite.Sprite):
         self.aura_rotation -= self.aura_rotation_speed
         old_center = self.aura.rect.center
         self.aura.rect = self.aura.image.get_rect(center=old_center)
-
+ 
         boss_center_x = self.x_pos + self.rect.width / 2
         boss_center_y = self.y_pos + self.rect.height / 2
         self.aura.rect.centerx = round(boss_center_x)
