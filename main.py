@@ -42,6 +42,7 @@ score_text = pygame.sprite.Group()
 power_text = pygame.sprite.Group()
 graze_text = pygame.sprite.Group()
 attacks_left_text = pygame.sprite.Group()
+phase_timer_text = pygame.sprite.Group()
 
 SIDEBAR_OFFSET_PLACEMENT = GAME_WIDTH + 120
 
@@ -97,6 +98,7 @@ def draw (window, player, boss):
     stars.draw(window)
     letters.draw(window)
     attacks_left_text.draw(window)
+    phase_timer_text.draw(window)
     highscore_text.draw(window) 
     score_text.draw(window)
     power_text.draw(window)
@@ -109,7 +111,7 @@ def main(window):
     player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
     boss = Boss(GAME_WIDTH // 2 - 38, 50, window, GAME_WIDTH)
 
-    boss_health_bar = Bar(220, 27, 360, 5, (255, 255, 255), window, bars, is_gradient=True,
+    boss_health_bar = Bar(220, 27, 300, 5, (255, 255, 255), window, bars, is_gradient=True,
                     gradient_start_color=(255,255,35), gradient_end_color=(255,100,100), max_height=5, vertical=True)
 
     power_bar_container = Bar(SIDEBAR_OFFSET_PLACEMENT, 330, 235, 30, (30, 30, 30), window, bars, has_border=True, border_color=(255,255,255))
@@ -119,7 +121,9 @@ def main(window):
 
     set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255,255,35,255))
     set_text(str(boss.attacks_left), 200, 18, *DEFAULT_TEXT_SETUP, attacks_left_text, 1, 1.5, (255,255,100,255))
+    set_text(str(boss.phase_timer), GAME_WIDTH - 50, 18, *DEFAULT_TEXT_SETUP, phase_timer_text, 1, 1.5, (190,220,255,255))
 
+    set_text("LUNATIC", GAME_WIDTH + 16*1.75*7/3, 35, *DEFAULT_TEXT_SETUP, letters, 0.7, 1.75, (205, 20, 185))
     set_text("HiScore", GAME_WIDTH + 20, 100, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255, 255, 225))
     set_text(str(player.highscore).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 98, *DEFAULT_TEXT_SETUP, highscore_text,  0.675, 1.25, (255, 255, 225))
     set_text("Score", GAME_WIDTH + 20, 140, *DEFAULT_TEXT_SETUP, letters,  1.5, 1)
@@ -135,6 +139,7 @@ def main(window):
 
     # Optimization helpers, ensures no needless running
     last_attacks_left = None
+    last_phase_timer = None
     last_boss_health = None
     last_highscore = None
     last_score = None
@@ -149,6 +154,10 @@ def main(window):
         last_attacks_left = basic_text_update(last_attacks_left, boss.attacks_left, attacks_left_text, 
                           str(boss.attacks_left), 190, 16, *DEFAULT_TEXT_SETUP, attacks_left_text, 1, 1.5, (255,255,160,255))
 
+        phase_timer_color = (190,220,255,255) if boss.phase_timer > 19 else (180,160,225,255) if boss.phase_timer > 9 else (255,130,170,255) if boss.phase_timer > 4 else (255,88,88,)
+        last_phase_timer = basic_text_update(last_phase_timer, boss.phase_timer, phase_timer_text, 
+                          str(boss.phase_timer).zfill(2), GAME_WIDTH-67.5, 16, *DEFAULT_TEXT_SETUP, phase_timer_text, 1, 1.5, phase_timer_color)
+        
         last_highscore = basic_text_update(last_highscore, player.highscore, highscore_text, 
                           str(player.highscore).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 98, *DEFAULT_TEXT_SETUP, highscore_text,  0.675, 1.25, (255, 255, 225))
 
@@ -202,4 +211,5 @@ def main(window):
 
 
 if __name__ == "__main__":
+
     main(window)

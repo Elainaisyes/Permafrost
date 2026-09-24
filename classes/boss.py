@@ -2,6 +2,7 @@ import pygame, math, random
 from classes.basic_image import Basic_Image
 from classes.particle import Particle
 from util.load_sprite_sheets import load_sprite_sheets
+from util.play_sound import play_sound
 
 def lerp_angle(current, target, multiplier):
     delta = (target - current) % 360
@@ -13,10 +14,17 @@ def lerp_angle(current, target, multiplier):
 
     return current + delta * multiplier
 
+class Phase:
+    def __init__(self, health, timer, is_spellcard=False):
+        self.health = health
+        self.timer = timer
+        self.is_spellcard = is_spellcard
+
 class Boss(pygame.sprite.Sprite):
     ANIMATION_DELAY = 4
     MAX_SPEED = 6
     SHOOT_DELAY = 4
+    FPS = 60
 
     # Sprite rows
     IDLE_FORWARDS = "Flandre_row0_"
@@ -24,8 +32,12 @@ class Boss(pygame.sprite.Sprite):
     IDLE_BACKWARDS = "Flandre_row4_"
     IDLE_BACKWARDS_TURNED = "Flandre_row3_"
     MOVING = "Flandre_row2_"
-    FLY_UP = "Flandre_row1_"
-    FLY_DOWN = "Flandre_row3_"
+
+    PHASES = (
+        Phase(1500, 30),
+        # Placeholder
+        Phase(2200, 45, True)
+    )
 
     def __init__(self, x, y, window, player, screen_width = 600):
         super().__init__()
@@ -45,8 +57,13 @@ class Boss(pygame.sprite.Sprite):
         self.desired_x, self.desired_y = self.sprite_screen_center_x, 750/4
 
         self.attacks_left = 9
-        self.phase_health = 1500
+        self.phase_health = 0
         self.health = self.phase_health
+        self.phase_timer = 0
+        self.phase_timer_delay = 0
+        self.phase_index = 0
+        self.phase_time_elapsed = 0
+        self.start_phase()
 
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
@@ -57,6 +74,9 @@ class Boss(pygame.sprite.Sprite):
 
         self.particles = pygame.sprite.Group()
         self.particle_offset_y = 0
+
+        self.time_running_out_sfx = pygame.mixer.Sound("assets/audios/sfx/timeout.wav")
+        self.boss_hurt_sfx = pygame.mixer.Sound("assets/audios/sfx/plst00.wav")
 
     def move(self):
         target_x = self.desired_x - self.rect.centerx
@@ -107,8 +127,19 @@ class Boss(pygame.sprite.Sprite):
 
         player_bullet_collided = pygame.sprite.spritecollide(self, player.bullets, True, pygame.sprite.collide_mask)
         if player_bullet_collided:
-            self.health -= player.damage
-            print(self.health)
+            self.health = max(0, self.health-player.damage)
+            play_sound(self.boss_hurt_sfx,0.1)
+            
+
+        self.phase_timer_delay += 1
+        if self.phase_timer_delay % self.FPS == 0:
+            self.phase_timer -= 1
+            if -1 < self.phase_timer < 10:
+                play_sound(self.time_running_out_sfx, 0.75)
+
+        if self.phase_timer < 0: 
+            self.attacks_left -= 1
+            self.phase_timer = 30
 
     def update_aura(self):
         self.aura.image = pygame.transform.rotate(self.aura.original_image, self.aura_rotation)
@@ -152,6 +183,16 @@ class Boss(pygame.sprite.Sprite):
         self.animation_count += 1
         self.image = sprites[sprite_index]
         self.mask = pygame.mask.from_surface(self.image)
+
+    def start_phase(self):
+        phase = self.PHASES[self.phase_index]
+
+        self.phase_health = phase.health
+        self.health = phase.health
+        self.phase_timer = phase.timer
+        self.phase_timer_delay = 0
+        self.phase_time_elapsed = 0
+
 
 
     def draw(self):

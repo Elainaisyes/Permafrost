@@ -68,5 +68,6 @@ class Bar(pygame.sprite.Sprite):
         g = int(self.gradient_start_color[1] + (self.gradient_end_color[1] - self.gradient_start_color[1]) * interpolation)
         b = int(self.gradient_start_color[2] + (self.gradient_end_color[2] - self.gradient_start_color[2]) * interpolation)
         return (r,g,b)
+    
     def draw(self):
         self.window.blit(self.image, self.rect)
