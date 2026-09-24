@@ -45,7 +45,8 @@ class Boss(pygame.sprite.Sprite):
         self.desired_x, self.desired_y = self.sprite_screen_center_x, 750/4
 
         self.attacks_left = 9
-        self.health = 1000
+        self.phase_health = 1500
+        self.health = self.phase_health
 
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")

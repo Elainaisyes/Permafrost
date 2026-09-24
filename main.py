@@ -1,4 +1,4 @@
-import pygame, os
+import pygame
 from classes.player import Player
 from classes.boss import Boss
 from classes.background import Background
@@ -110,7 +110,7 @@ def main(window):
     boss = Boss(GAME_WIDTH // 2 - 38, 50, window, GAME_WIDTH)
 
     boss_health_bar = Bar(220, 27, 360, 5, (255, 255, 255), window, bars, is_gradient=True,
-                    gradient_start_color=(255,255,255), gradient_end_color=(90,140,255), max_height=5, vertical=True)
+                    gradient_start_color=(255,255,35), gradient_end_color=(255,100,100), max_height=5, vertical=True)
 
     power_bar_container = Bar(SIDEBAR_OFFSET_PLACEMENT, 330, 235, 30, (30, 30, 30), window, bars, has_border=True, border_color=(255,255,255))
     power_bar = Bar(SIDEBAR_OFFSET_PLACEMENT + 5, 335, 225, 20, (255, 255, 255), window, bars, is_gradient=True,
@@ -135,6 +135,7 @@ def main(window):
 
     # Optimization helpers, ensures no needless running
     last_attacks_left = None
+    last_boss_health = None
     last_highscore = None
     last_score = None
     last_health = None
@@ -153,6 +154,15 @@ def main(window):
 
         last_score = basic_text_update(last_score, player.score, score_text, 
                           str(player.score).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 138, *DEFAULT_TEXT_SETUP, score_text,  0.675, 1.25)
+        
+        last_graze = basic_text_update(last_graze, player.graze, graze_text, 
+                          str(player.graze), SIDEBAR_OFFSET_PLACEMENT, 378, *DEFAULT_TEXT_SETUP, graze_text,  0.75, 1.25, (217, 255, 236))
+
+        if boss.health != last_boss_health:
+            last_boss_health = boss.health
+            boss_health_bar.width = max(0, min(boss_health_bar.max_width, int(boss_health_bar.max_width * boss.health/boss.phase_health)))
+            boss_health_bar.build_image()
+
 
         if player.health != last_health or player.bombs != last_bombs:
             update_stars(player)
@@ -160,7 +170,7 @@ def main(window):
             last_bombs = player.bombs
 
         if player.power != last_power:
-            power_bar.width = max(0, min(power_bar.max_width, int(power_bar.max_width * (player.power / 125))))
+            power_bar.width = max(0, min(power_bar.max_width, int(power_bar.max_width * (player.power / 128))))
             update_bars(player, power_bar_container,power_bar)
 
             power_text.empty()
@@ -171,8 +181,6 @@ def main(window):
 
             last_power = player.power
 
-        last_graze = basic_text_update(last_graze, player.graze, graze_text, 
-                          str(player.graze), SIDEBAR_OFFSET_PLACEMENT, 378, *DEFAULT_TEXT_SETUP, graze_text,  0.75, 1.25, (217, 255, 236))
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:

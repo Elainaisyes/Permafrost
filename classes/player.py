@@ -79,16 +79,16 @@ class Player(pygame.sprite.Sprite):
         
         self.top_left_big_bullet = Player_Bullet(self.rect.centerx - self.bullet_offset_x - 24, self.rect.centery - 48 + self.bullet_offset_y,
                                              self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
-                                             0, False, True, self.big_bullets)
+                                             0, False, True, 255, self.big_bullets)
         self.top_right_big_bullet = Player_Bullet(self.rect.centerx + self.bullet_offset_x, self.rect.centery - 48 + self.bullet_offset_y, 
                                               self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
-                                              0, False, True, self.big_bullets)
+                                              0, False, True, 255, self.big_bullets)
         self.bottom_left_big_bullet = Player_Bullet(self.rect.centerx - self.bullet_offset_x - 24, self.rect.centery - 48 + self.bullet_offset_y,
                                              self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
-                                             0, False, True, self.big_bullets)
+                                             0, False, True, 0, self.big_bullets)
         self.bottom_right_big_bullet = Player_Bullet(self.rect.centerx + self.bullet_offset_x*2, self.rect.centery - 48 + self.bullet_offset_y, 
                                               self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
-                                              0, False, True, self.big_bullets)
+                                              0, False, True, 0, self.big_bullets)
 
         self.player_shoot_sfx = pygame.mixer.Sound("assets/audios/sfx/tan00.wav")
         self.graze_sfx = pygame.mixer.Sound("assets/audios/sfx/graze.wav")
@@ -174,17 +174,17 @@ class Player(pygame.sprite.Sprite):
                 play_sound(self.player_shoot_sfx, 0.05)
                 Player_Bullet(self.rect.centerx-self.bullet_offset_x-22, self.rect.centery - 48 + self.bullet_offset_y,
                                self.bullet_sprites["Projectiles_bullet"][7], self.window,
-                               10, True, True, self.bullets)
+                               10, True, True, 255, self.bullets)
                 Player_Bullet(self.rect.centerx+self.bullet_offset_x+2, self.rect.centery - 48 + self.bullet_offset_y,
                                self.bullet_sprites["Projectiles_bullet"][7], self.window,
-                               10, True, True, self.bullets)
+                               10, True, True, 255, self.bullets)
                 if self.damage_level == 3:
                     Player_Bullet(self.rect.centerx-self.bullet_offset_x*1.5-22-12, self.rect.centery - 48 + self.bullet_offset_y+24,
                                 self.bullet_sprites["Projectiles_bullet"][7], self.window,
-                                10, True, True, self.bullets)
+                                10, True, True, 255, self.bullets)
                     Player_Bullet(self.rect.centerx+self.bullet_offset_x*1.5+2+12, self.rect.centery - 48 + self.bullet_offset_y+24,
                                 self.bullet_sprites["Projectiles_bullet"][7], self.window,
-                                10, True, True, self.bullets)
+                                10, True, True, 255, self.bullets)
 
 
 
@@ -241,6 +241,13 @@ class Player(pygame.sprite.Sprite):
 
         self.damage = self.damage_level
         self.shoot_delay = 4 if self.damage_level == 1 else 2
+
+        big_bullets_desired_alpha = 0 if not self.damage_level == 3 else 255
+        big_bullets_alpha = self.bottom_left_big_bullet.image.get_alpha()
+        new_alpha = lerp(big_bullets_alpha, big_bullets_desired_alpha, 0.15)
+
+        self.bottom_left_big_bullet.image.set_alpha(new_alpha)
+        self.bottom_right_big_bullet.image.set_alpha(new_alpha)
 
     def update_sprite(self):
         if self.looking_straight:

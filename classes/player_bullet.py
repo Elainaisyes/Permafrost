@@ -3,14 +3,19 @@ from classes.particle import Particle
 from util.load_sprite_sheets import load_sprite_sheet_row
 
 class Player_Bullet(pygame.sprite.Sprite):
-    def __init__(self, x, y, image, window, y_velocity = 10, damaging = True, create_particles=True, *groups):
+    def __init__(self, x, y, image, window, y_velocity = 10, damaging = True, create_particles=True, alpha=255, *groups):
         super().__init__(*groups)
         self.image = image
+        self.alpha = alpha
+        if not damaging:
+            self.image = self.image.copy()
+            self.image.set_alpha(self.alpha)
         self.rect = self.image.get_rect(topleft=(x, y))
         self.mask = pygame.mask.from_surface(self.image)
         self.y_velocity = y_velocity
         self.damaging = damaging
         self.create_particles = create_particles
+        
 
         self.window = window
 
