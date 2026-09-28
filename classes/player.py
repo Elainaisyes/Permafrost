@@ -239,7 +239,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.damage_level = 3 
 
-        self.damage = self.damage_level
+        self.damage = self.damage_level if not boss.in_spellcard else self.damage_level / 3
         self.shoot_delay = 4 if self.damage_level == 1 else 2
 
         big_bullets_desired_alpha = 0 if not self.damage_level == 3 else 255

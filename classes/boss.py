@@ -15,10 +15,12 @@ def lerp_angle(current, target, multiplier):
     return current + delta * multiplier
 
 class Phase:
-    def __init__(self, health, timer, is_spellcard=False):
+    def __init__(self, health, timer, start_spellcard_health=None, is_spellcard=False, name=None):
         self.health = health
+        self.start_spellcard_health = start_spellcard_health
         self.timer = timer
         self.is_spellcard = is_spellcard
+        self.name = name
 
 class Boss(pygame.sprite.Sprite):
     ANIMATION_DELAY = 4
@@ -34,12 +36,33 @@ class Boss(pygame.sprite.Sprite):
     MOVING = "Flandre_row2_"
 
     PHASES = (
-        Phase(1500, 30),
-        # Placeholder
-        Phase(2200, 45, True)
+        Phase(5000, 30, start_spellcard_health=3000),
+        Phase(None, 60, is_spellcard=True, name='Taboo "Cranberry Trap"'),
+
+        Phase(2000, 30, start_spellcard_health=3000),
+        Phase(None, 60, is_spellcard=True, name='Taboo "Laevateinn"'),
+
+        Phase(2000, 30, start_spellcard_health=4000),
+        Phase(None, 60, is_spellcard=True, name='Taboo "Four of a Kind"'),
+
+        Phase(2000, 30, start_spellcard_health=3000),
+        Phase(None, 60, is_spellcard=True, name='Taboo "Kagome, Kagome"'),
+
+        Phase(2000, 30, start_spellcard_health=3000),
+        Phase(None, 60, is_spellcard=True, name='Taboo "Maze of Love"'),
+
+        Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Starbow Break"'),
+
+        Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Catadioptric"'),
+
+        Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Counter Clock"'),
+
+        Phase(99999999, 60, is_spellcard=True, name='Secret Barrage "And Then Will there be None?"'),
+
+        Phase(7000, 60, is_spellcard=True, name='Q.E.D. "Ripples of 495 Years"'),
     )
 
-    def __init__(self, x, y, window, player, screen_width = 600):
+    def __init__(self, x, y, window, screen_width = 600):
         super().__init__()
         self.sprites = load_sprite_sheets("Flandre", 24, 32, 8, 2.5, "right")
         self.image = self.sprites[f"{self.IDLE_BACKWARDS}right"][0]
@@ -63,6 +86,7 @@ class Boss(pygame.sprite.Sprite):
         self.phase_timer_delay = 0
         self.phase_index = 0
         self.phase_time_elapsed = 0
+        self.in_spellcard = False
         self.start_phase()
 
         self.window = window
@@ -127,19 +151,24 @@ class Boss(pygame.sprite.Sprite):
 
         player_bullet_collided = pygame.sprite.spritecollide(self, player.bullets, True, pygame.sprite.collide_mask)
         if player_bullet_collided:
-            self.health = max(0, self.health-player.damage)
+            self.health = max(0, round(self.health - player.damage))
             play_sound(self.boss_hurt_sfx,0.1)
             
 
-        self.phase_timer_delay += 1
+        self.phase_timer_delay += 5
         if self.phase_timer_delay % self.FPS == 0:
             self.phase_timer -= 1
             if -1 < self.phase_timer < 10:
                 play_sound(self.time_running_out_sfx, 0.75)
 
-        if self.phase_timer < 0: 
-            self.attacks_left -= 1
-            self.phase_timer = 30
+        phase = self.PHASES[self.phase_index]
+
+        if self.phase_timer < 0:
+            if not phase.is_spellcard:
+                self.attacks_left -= 1
+            self.phase_timer = phase.timer
+            self.phase_index = (self.phase_index+1) % len(self.PHASES)
+            self.start_phase()
 
     def update_aura(self):
         self.aura.image = pygame.transform.rotate(self.aura.original_image, self.aura_rotation)
@@ -186,9 +215,19 @@ class Boss(pygame.sprite.Sprite):
 
     def start_phase(self):
         phase = self.PHASES[self.phase_index]
+        
 
-        self.phase_health = phase.health
-        self.health = phase.health
+        if phase.is_spellcard:
+            self.in_spellcard = True
+        else:
+            self.in_spellcard = False
+        print(self.in_spellcard, phase.is_spellcard, phase)
+
+        if phase.health is not None:
+            self.phase_health = phase.health
+            self.health = phase.health
+        
+
         self.phase_timer = phase.timer
         self.phase_timer_delay = 0
         self.phase_time_elapsed = 0
