@@ -59,7 +59,7 @@ class Boss(pygame.sprite.Sprite):
 
         Phase(99999999, 60, is_spellcard=True, name='Secret Barrage "And Then Will there be None?"'),
 
-        Phase(7000, 60, is_spellcard=True, name='Q.E.D. "Ripples of 495 Years"'),
+        Phase(7000, 120, is_spellcard=True, name='Q.E.D. "Ripples of 495 Years"')
     )
 
     def __init__(self, x, y, window, screen_width = 600):
@@ -85,6 +85,7 @@ class Boss(pygame.sprite.Sprite):
         self.phase_timer = 0
         self.phase_timer_delay = 0
         self.phase_index = 0
+        self.phase = self.PHASES[self.phase_index]
         self.phase_time_elapsed = 0
         self.in_spellcard = False
         self.start_phase()
@@ -155,19 +156,17 @@ class Boss(pygame.sprite.Sprite):
             play_sound(self.boss_hurt_sfx,0.1)
             
 
-        self.phase_timer_delay += 5
+        self.phase_timer_delay += 60
         if self.phase_timer_delay % self.FPS == 0:
             self.phase_timer -= 1
             if -1 < self.phase_timer < 10:
                 play_sound(self.time_running_out_sfx, 0.75)
 
-        phase = self.PHASES[self.phase_index]
-
         if self.phase_timer < 0:
-            if not phase.is_spellcard:
+            if self.phase.name is not None:
                 self.attacks_left -= 1
-            self.phase_timer = phase.timer
-            self.phase_index = (self.phase_index+1) % len(self.PHASES)
+            self.phase_timer = self.phase.timer
+            self.phase_index = (self.phase_index + 1 ) % len(self.PHASES)
             self.start_phase()
 
     def update_aura(self):
@@ -214,21 +213,21 @@ class Boss(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     def start_phase(self):
-        phase = self.PHASES[self.phase_index]
+        self.phase = self.PHASES[self.phase_index]
         
 
-        if phase.is_spellcard:
+        if self.phase.is_spellcard:
             self.in_spellcard = True
         else:
             self.in_spellcard = False
-        print(self.in_spellcard, phase.is_spellcard, phase)
+        print(self.phase.name or "Basic_Attack", self.phase_index)
 
-        if phase.health is not None:
-            self.phase_health = phase.health
-            self.health = phase.health
+        if self.phase.health is not None:
+            self.phase_health = self.phase.health
+            self.health = self.phase.health
         
 
-        self.phase_timer = phase.timer
+        self.phase_timer = self.phase.timer
         self.phase_timer_delay = 0
         self.phase_time_elapsed = 0
 

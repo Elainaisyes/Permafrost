@@ -5,7 +5,7 @@ from classes.background import Background
 from classes.basic_image import Basic_Image
 from classes.bar import Bar
 from util.return_letters import return_letters
-from util.set_text import set_text
+from util.set_text import set_text, get_line_breaks, get_line_width
 
 # eliminates lag
 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -43,6 +43,7 @@ power_text = pygame.sprite.Group()
 graze_text = pygame.sprite.Group()
 attacks_left_text = pygame.sprite.Group()
 phase_timer_text = pygame.sprite.Group()
+spellcard_text = pygame.sprite.Group()
 
 SIDEBAR_OFFSET_PLACEMENT = GAME_WIDTH + 120
 
@@ -103,6 +104,7 @@ def draw (window, player, boss):
     score_text.draw(window)
     power_text.draw(window)
     graze_text.draw(window)
+    spellcard_text.draw(window)
     pygame.display.update()
 
 def main(window):
@@ -111,8 +113,11 @@ def main(window):
     player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
     boss = Boss(GAME_WIDTH // 2 - 38, 50, window, GAME_WIDTH)
 
-    boss_health_bar = Bar(220, 27, 300, 5, (255, 255, 255), window, bars, is_gradient=True,
+    boss_health_bar = Bar(220, 27, 300, 5, (255, 255, 255), window, bars, is_gradient=True, 
                     gradient_start_color=(255,255,35), gradient_end_color=(255,100,100), max_height=5, vertical=True)
+
+    spellcard_bar = Bar(SIDEBAR_WIDTH - 160, 50, 290, LETTER_SIZE, (255, 255, 255), window, bars, is_gradient=True, border_radius=200,
+                    gradient_start_color=(83, 70, 199, 0), gradient_end_color=(83, 70, 199, 150), max_height=LETTER_SIZE, vertical=True)
 
     power_bar_container = Bar(SIDEBAR_OFFSET_PLACEMENT, 330, 235, 30, (30, 30, 30), window, bars, has_border=True, border_color=(255,255,255))
     power_bar = Bar(SIDEBAR_OFFSET_PLACEMENT + 5, 335, 225, 20, (255, 255, 255), window, bars, is_gradient=True,
@@ -147,6 +152,8 @@ def main(window):
     last_bombs = None
     last_power = None
     last_graze = None
+    last_spellcard_text = None
+
     while running: 
         clock.tick(FPS)
         window.fill(BG_COLOR)
@@ -189,6 +196,17 @@ def main(window):
             set_text(text, power_bar_container.x_pos + 24, 335, *DEFAULT_TEXT_SETUP, power_text, spacing, 1.25, color)
 
             last_power = player.power
+
+        if boss.phase.name is not None and boss.phase.name != last_spellcard_text:
+            last_spellcard_text = basic_text_update(last_spellcard_text, boss.phase.name, spellcard_text, 
+                            str(boss.phase.name), SIDEBAR_WIDTH-150, 50, *DEFAULT_TEXT_SETUP, spellcard_text,  1.4, 0.9, (217, 255, 236), 300)
+            line_breaks = get_line_breaks() + 1 
+            line_width = get_line_width()
+            print(line_width)
+            height = LETTER_SIZE * line_breaks
+            spellcard_bar.height, spellcard_bar.max_height = height, height
+            spellcard_bar.width = int(line_width)
+            spellcard_bar.build_image()
 
 
         for event in pygame.event.get():

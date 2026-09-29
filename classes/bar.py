@@ -39,20 +39,20 @@ class Bar(pygame.sprite.Sprite):
 
         
         if not self.is_gradient:
-            pygame.draw.rect(self.image, (self.color[:3]), (0, 0, self.width, self.height), border_radius=self.border_radius)
+            pygame.draw.rect(self.image, (self.color), (0, 0, self.width, self.height), border_radius=self.border_radius)
         else:
             gradient = pygame.Surface((self.max_width, self.height), pygame. SRCALPHA)
             if not self.vertical:
                 for x in range(self.max_width):
                     interpolation = x / max(1, self.max_width - 1)
-                    r,g,b = self.get_line_rgb(interpolation)
-                    pygame.draw.line(gradient, (r, g, b), (x, 0), (x, self.height))
+                    r, g, b, alpha = self.get_line_rgb(interpolation)
+                    pygame.draw.line(gradient, (r, g, b, alpha), (x, 0), (x, self.height))
             else:
                 gradient = pygame.Surface((self.width, self.max_height), pygame. SRCALPHA)
                 for y in range(self.max_height):
                     interpolation = y / max(1, self.max_height - 1)
-                    r,g,b = self.get_line_rgb(interpolation)
-                    pygame.draw.line(gradient, (r, g, b), (0, y), (self.width, y))
+                    r, g, b, alpha = self.get_line_rgb(interpolation)
+                    pygame.draw.line(gradient, (r, g, b, alpha), (0, y), (self.width, y))
 
             mask = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
             pygame.draw.rect(mask, (255, 255, 255, 255), (0, 0, self.width, self.height), border_radius=self.border_radius)
@@ -67,7 +67,10 @@ class Bar(pygame.sprite.Sprite):
         r = int(self.gradient_start_color[0] + (self.gradient_end_color[0] - self.gradient_start_color[0]) * interpolation)
         g = int(self.gradient_start_color[1] + (self.gradient_end_color[1] - self.gradient_start_color[1]) * interpolation)
         b = int(self.gradient_start_color[2] + (self.gradient_end_color[2] - self.gradient_start_color[2]) * interpolation)
-        return (r,g,b)
+        alpha = 255
+        if len(self.gradient_start_color) > 3 and len(self.gradient_end_color) > 3:
+            alpha = int(self.gradient_start_color[3] + (self.gradient_end_color[3] - self.gradient_start_color[3]) * interpolation) 
+        return (r,g,b, alpha)
     
     def draw(self):
         self.window.blit(self.image, self.rect)
