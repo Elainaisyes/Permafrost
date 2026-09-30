@@ -54,7 +54,38 @@ green_star = pygame.image.load("assets/images/Star/Green_Star.png").convert_alph
 main_background = Background(0, 0, WIDTH-SIDEBAR_WIDTH, HEIGHT, 'Game_Background.png', window)
 sidebar = Background(WIDTH-SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT, 'Sidebar_Background.png', window)
 
+player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
+boss = Boss(GAME_WIDTH // 2 - 38, 50, window, GAME_WIDTH)
+
 bars = pygame.sprite.Group()
+
+boss_health_bar = Bar(220, 27, 300, 5, (255, 255, 255), window, bars, is_gradient=True, 
+                gradient_start_color=(255,255,35), gradient_end_color=(255,100,100), max_height=5, vertical=True)
+
+spellcard_bar = Bar(220, 37, 290, LETTER_SIZE, (255, 255, 255), window, is_gradient=True, border_radius=200,
+                gradient_start_color=(83, 70, 199, 0), gradient_end_color=(83, 70, 199, 150), max_height=LETTER_SIZE, vertical=True)
+
+power_bar_container = Bar(SIDEBAR_OFFSET_PLACEMENT, 330, 235, 30, (30, 30, 30), window, bars, has_border=True, border_color=(255,255,255))
+power_bar = Bar(SIDEBAR_OFFSET_PLACEMENT + 5, 335, 225, 20, (255, 255, 255), window, bars, is_gradient=True,
+                gradient_start_color=(255,255,255), gradient_end_color=(90,140,255), max_width=225)
+
+set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255,255,35,255))
+set_text(str(boss.attacks_left), 200, 18, *DEFAULT_TEXT_SETUP, attacks_left_text, 1, 1.5, (255,255,100,255))
+set_text(str(boss.phase_timer), GAME_WIDTH - 50, 18, *DEFAULT_TEXT_SETUP, phase_timer_text, 1, 1.5, (190,220,255,255))
+
+set_text("LUNATIC", GAME_WIDTH + 16*1.75*7/3, 35, *DEFAULT_TEXT_SETUP, letters, 0.7, 1.75, (205, 20, 185))
+set_text("HiScore", GAME_WIDTH + 20, 100, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255, 255, 225))
+set_text(str(player.highscore).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 98, *DEFAULT_TEXT_SETUP, highscore_text,  0.675, 1.25, (255, 255, 225))
+set_text("Score", GAME_WIDTH + 20, 140, *DEFAULT_TEXT_SETUP, letters,  1.5, 1)
+set_text(str(player.score).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 138, *DEFAULT_TEXT_SETUP, score_text,  0.675, 1.25)
+
+set_text("Player", GAME_WIDTH + 20, 220, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (255, 88, 88))
+set_text("Bomb", GAME_WIDTH + 20, 260, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (67, 177, 86))
+
+set_text("Power", GAME_WIDTH + 20, 335, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (149, 223, 255))
+set_text(str(int(player.power)), power_bar_container.x_pos + power_bar_container.width/2 - 12, 335, *DEFAULT_TEXT_SETUP, power_text,  1.5, 1.5, (195, 232, 255))
+set_text("Graze", GAME_WIDTH + 20, 380, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (127, 237, 146))
+set_text(str(player.graze), SIDEBAR_OFFSET_PLACEMENT, 378, *DEFAULT_TEXT_SETUP, graze_text,  0.75, 1.25, (127, 237, 146))
 
 def basic_text_update(tracker, tracked, group, *args):
     if tracked != tracker:
@@ -89,11 +120,23 @@ def update_bars(player, container, bar) :
         container.build_image()
         bar.build_image()
 
+def update_spellcard_bar(spellcard_bar, boss, last_text_group):
+    last_text_group = basic_text_update(last_text_group, boss.phase.name, spellcard_text, 
+                    str(boss.phase.name), spellcard_bar.x_pos + 10, spellcard_bar.y_pos+5, *DEFAULT_TEXT_SETUP, spellcard_text,  1.4, 0.9, (190,220,255), 280)
+    line_breaks = get_line_breaks() + 1 
+    line_width = get_line_width()
+    height = LETTER_SIZE * line_breaks + 5
+    spellcard_bar.height, spellcard_bar.max_height = height, height
+    spellcard_bar.width = int(line_width) + 20
+    spellcard_bar.build_image()
+
 def draw (window, player, boss):
     main_background.draw()
     boss.aura.draw()
     player.draw()
     boss.draw()
+    spellcard_bar.draw()
+    spellcard_text.draw(window)
     sidebar.draw()
     bars.draw(window)
     stars.draw(window)
@@ -104,43 +147,11 @@ def draw (window, player, boss):
     score_text.draw(window)
     power_text.draw(window)
     graze_text.draw(window)
-    spellcard_text.draw(window)
     pygame.display.update()
 
 def main(window):
     running = True
     clock = pygame.time.Clock()
-    player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
-    boss = Boss(GAME_WIDTH // 2 - 38, 50, window, GAME_WIDTH)
-
-    boss_health_bar = Bar(220, 27, 300, 5, (255, 255, 255), window, bars, is_gradient=True, 
-                    gradient_start_color=(255,255,35), gradient_end_color=(255,100,100), max_height=5, vertical=True)
-
-    spellcard_bar = Bar(SIDEBAR_WIDTH - 160, 50, 290, LETTER_SIZE, (255, 255, 255), window, bars, is_gradient=True, border_radius=200,
-                    gradient_start_color=(83, 70, 199, 0), gradient_end_color=(83, 70, 199, 150), max_height=LETTER_SIZE, vertical=True)
-
-    power_bar_container = Bar(SIDEBAR_OFFSET_PLACEMENT, 330, 235, 30, (30, 30, 30), window, bars, has_border=True, border_color=(255,255,255))
-    power_bar = Bar(SIDEBAR_OFFSET_PLACEMENT + 5, 335, 225, 20, (255, 255, 255), window, bars, is_gradient=True,
-                    gradient_start_color=(255,255,255), gradient_end_color=(90,140,255), max_width=225)
-
-
-    set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255,255,35,255))
-    set_text(str(boss.attacks_left), 200, 18, *DEFAULT_TEXT_SETUP, attacks_left_text, 1, 1.5, (255,255,100,255))
-    set_text(str(boss.phase_timer), GAME_WIDTH - 50, 18, *DEFAULT_TEXT_SETUP, phase_timer_text, 1, 1.5, (190,220,255,255))
-
-    set_text("LUNATIC", GAME_WIDTH + 16*1.75*7/3, 35, *DEFAULT_TEXT_SETUP, letters, 0.7, 1.75, (205, 20, 185))
-    set_text("HiScore", GAME_WIDTH + 20, 100, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255, 255, 225))
-    set_text(str(player.highscore).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 98, *DEFAULT_TEXT_SETUP, highscore_text,  0.675, 1.25, (255, 255, 225))
-    set_text("Score", GAME_WIDTH + 20, 140, *DEFAULT_TEXT_SETUP, letters,  1.5, 1)
-    set_text(str(player.score).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 138, *DEFAULT_TEXT_SETUP, score_text,  0.675, 1.25)
-
-    set_text("Player", GAME_WIDTH + 20, 220, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (255, 88, 88))
-    set_text("Bomb", GAME_WIDTH + 20, 260, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (67, 177, 86))
-
-    set_text("Power", GAME_WIDTH + 20, 335, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (149, 223, 255))
-    set_text(str(int(player.power)), power_bar_container.x_pos + power_bar_container.width/2 - 12, 335, *DEFAULT_TEXT_SETUP, power_text,  1.5, 1.5, (195, 232, 255))
-    set_text("Graze", GAME_WIDTH + 20, 380, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (127, 237, 146))
-    set_text(str(player.graze), SIDEBAR_OFFSET_PLACEMENT, 378, *DEFAULT_TEXT_SETUP, graze_text,  0.75, 1.25, (127, 237, 146))
 
     # Optimization helpers, ensures no needless running
     last_attacks_left = None
@@ -197,16 +208,14 @@ def main(window):
 
             last_power = player.power
 
-        if boss.phase.name is not None and boss.phase.name != last_spellcard_text:
-            last_spellcard_text = basic_text_update(last_spellcard_text, boss.phase.name, spellcard_text, 
-                            str(boss.phase.name), SIDEBAR_WIDTH-150, 50, *DEFAULT_TEXT_SETUP, spellcard_text,  1.4, 0.9, (217, 255, 236), 300)
-            line_breaks = get_line_breaks() + 1 
-            line_width = get_line_width()
-            print(line_width)
-            height = LETTER_SIZE * line_breaks
-            spellcard_bar.height, spellcard_bar.max_height = height, height
-            spellcard_bar.width = int(line_width)
-            spellcard_bar.build_image()
+        if boss.phase.name != last_spellcard_text and boss.phase.name is not None:
+            spellcard_bar.x_pos = 220
+            update_spellcard_bar(spellcard_bar, boss, last_spellcard_text)
+
+        if not boss.phase.is_spellcard and spellcard_bar.x_pos < 800:
+            spellcard_bar.x_pos += 10
+            update_spellcard_bar(spellcard_bar, boss, last_spellcard_text)
+                
 
 
         for event in pygame.event.get():

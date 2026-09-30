@@ -31,11 +31,16 @@ def set_text(text, x, y, letters_dict, letter_size, window, group,
     m_side_spacing = get_side_spacing(default_amount, m_multiplier)
     w_side_spacing = get_side_spacing(default_amount, w_multiplier)
 
+
+    current_line_width = 0
+    max_line_width = 0
+
     words = text.split(" ")
 
     for word_index, word in enumerate(words):
         if word == "":
             cursor_x += default_amount
+            current_line_width = cursor_x - x
             continue
 
         word_width = 0
@@ -47,13 +52,13 @@ def set_text(text, x, y, letters_dict, letter_size, window, group,
             else:
                 word_width += default_amount
 
-        line_width = line_width
 
         if max_width is not None and cursor_x + word_width > x + max_width:
+            max_line_width = max(max_line_width, current_line_width)
             cursor_x = x
             cursor_y += letter_size
             line_breaks += 1
-            line_width = max_width
+            current_line_width = 0
 
         for character in word:
             if character in {"m", "M"}:
@@ -80,5 +85,10 @@ def set_text(text, x, y, letters_dict, letter_size, window, group,
             if character in {"w", "W"}:
                 cursor_x += w_side_spacing
 
+        current_line_width = cursor_x - x
+
         if word_index < len(words) - 1:
             cursor_x += default_amount
+            current_line_width = cursor_x - x
+
+    line_width = max(max_line_width, current_line_width)
