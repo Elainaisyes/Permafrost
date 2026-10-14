@@ -65,6 +65,8 @@ boss_health_bar = Bar(220, 27, 300, 5, (255, 255, 255), window, bars, is_gradien
 spellcard_bar = Bar(220, 37, 290, LETTER_SIZE, (255, 255, 255), window, is_gradient=True, border_radius=200,
                 gradient_start_color=(83, 70, 199, 0), gradient_end_color=(83, 70, 199, 150), max_height=LETTER_SIZE, vertical=True)
 
+boss_spellcard_image = Basic_Image(pygame.image.load("assets/images/Other/Flandre_Spellcard.png").convert_alpha(), 470, 350, 500, 500, 0.7, window)
+
 power_bar_container = Bar(SIDEBAR_OFFSET_PLACEMENT, 330, 235, 30, (30, 30, 30), window, bars, has_border=True, border_color=(255,255,255))
 power_bar = Bar(SIDEBAR_OFFSET_PLACEMENT + 5, 335, 225, 20, (255, 255, 255), window, bars, is_gradient=True,
                 gradient_start_color=(255,255,255), gradient_end_color=(90,140,255), max_width=225)
@@ -86,6 +88,9 @@ set_text("Power", GAME_WIDTH + 20, 335, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (
 set_text(str(int(player.power)), power_bar_container.x_pos + power_bar_container.width/2 - 12, 335, *DEFAULT_TEXT_SETUP, power_text,  1.5, 1.5, (195, 232, 255))
 set_text("Graze", GAME_WIDTH + 20, 380, *DEFAULT_TEXT_SETUP, letters,  1.5, 1, (127, 237, 146))
 set_text(str(player.graze), SIDEBAR_OFFSET_PLACEMENT, 378, *DEFAULT_TEXT_SETUP, graze_text,  0.75, 1.25, (127, 237, 146))
+
+def lerp(start, end, multiplier):
+    return start + (end - start) * multiplier
 
 def basic_text_update(tracker, tracked, group, *args):
     if tracked != tracker:
@@ -120,21 +125,31 @@ def update_bars(player, container, bar) :
         container.build_image()
         bar.build_image()
 
-def update_spellcard_bar(spellcard_bar, boss, last_text_group):
-    last_text_group = basic_text_update(last_text_group, boss.phase.name, spellcard_text, 
-                    str(boss.phase.name), spellcard_bar.x_pos + 10, spellcard_bar.y_pos+5, *DEFAULT_TEXT_SETUP, spellcard_text,  1.4, 0.9, (190,220,255), 280)
+def update_spellcard_bar(spellcard_bar, boss, last_text_group, tracker):
+    text = str(boss.phase.name) if boss.phase.name is not None else boss.phases[boss.phase_index-1].name
+    last_text_group = basic_text_update(last_text_group, tracker, spellcard_text, 
+                    text, spellcard_bar.x_pos + 10, spellcard_bar.y_pos+5, *DEFAULT_TEXT_SETUP, spellcard_text,  1.4, 0.9, (190,220,255), 280)
     line_breaks = get_line_breaks() + 1 
     line_width = get_line_width()
     height = LETTER_SIZE * line_breaks + 5
     spellcard_bar.height, spellcard_bar.max_height = height, height
     spellcard_bar.width = int(line_width) + 20
     spellcard_bar.build_image()
+    return last_text_group
+
+def set_spellcard_image(scale_factor, alpha):
+    boss_spellcard_image.scale_factor = scale_factor
+    boss_spellcard_image.image = pygame.transform.smoothscale(boss_spellcard_image.original_image.copy(), (int(500 * boss_spellcard_image.scale_factor), int(500 * boss_spellcard_image.scale_factor)))
+    boss_spellcard_image.alpha = alpha
+    boss_spellcard_image.image.set_alpha(int(boss_spellcard_image.alpha))
+    boss_spellcard_image.rect = boss_spellcard_image.image.get_rect(center=boss_spellcard_image.rect.center)
 
 def draw (window, player, boss):
     main_background.draw()
     boss.aura.draw()
     player.draw()
     boss.draw()
+    boss_spellcard_image.draw()
     spellcard_bar.draw()
     spellcard_text.draw(window)
     sidebar.draw()
@@ -209,12 +224,24 @@ def main(window):
             last_power = player.power
 
         if boss.phase.name != last_spellcard_text and boss.phase.name is not None:
-            spellcard_bar.x_pos = 220
-            update_spellcard_bar(spellcard_bar, boss, last_spellcard_text)
+            # spellcard_bar.xpos = 220, y = 37
+            spellcard_bar.x_pos = boss_spellcard_image.rect.centerx - spellcard_bar.width/2
+            spellcard_bar.y_pos = boss_spellcard_image.rect.centery + spellcard_bar.height*2.5
+            last_spellcard_text = update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, boss.phase.name)
+            set_spellcard_image(0.7, 255)
+            boss_spellcard_image.rect.centerx = 470 + 500*0.7/2 # Add 500*0.7/2 because originally it's positioned by the topleft corner and not the center when rendered.
 
         if not boss.phase.is_spellcard and spellcard_bar.x_pos < 800:
-            spellcard_bar.x_pos += 10
-            update_spellcard_bar(spellcard_bar, boss, last_spellcard_text)
+            spellcard_bar.x_pos += 15
+            last_spellcard_text = update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, (boss.phase.name, spellcard_bar.x_pos))
+
+        if boss.spellcard_image_delay_over:
+            set_spellcard_image(min(2, boss_spellcard_image.scale_factor + 0.04), max(0, boss_spellcard_image.alpha - 8))
+        else:
+            boss_spellcard_image.rect.centerx = lerp(boss_spellcard_image.rect.centerx, 270 + 500*0.7/2, 0.1)
+            
+            
+
                 
 
 

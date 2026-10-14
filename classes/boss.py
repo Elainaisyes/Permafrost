@@ -35,33 +35,6 @@ class Boss(pygame.sprite.Sprite):
     IDLE_BACKWARDS_TURNED = "Flandre_row3_"
     MOVING = "Flandre_row2_"
 
-    PHASES = (
-        Phase(5000, 30, start_spellcard_health=3000),
-        Phase(None, 60, is_spellcard=True, name='Taboo "Cranberry Trap"'),
-
-        Phase(2000, 30, start_spellcard_health=3000),
-        Phase(None, 60, is_spellcard=True, name='Taboo "Laevateinn"'),
-
-        Phase(2000, 30, start_spellcard_health=4000),
-        Phase(None, 60, is_spellcard=True, name='Taboo "Four of a Kind"'),
-
-        Phase(2000, 30, start_spellcard_health=3000),
-        Phase(None, 60, is_spellcard=True, name='Taboo "Kagome, Kagome"'),
-
-        Phase(2000, 30, start_spellcard_health=3000),
-        Phase(None, 60, is_spellcard=True, name='Taboo "Maze of Love"'),
-
-        Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Starbow Break"'),
-
-        Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Catadioptric"'),
-
-        Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Counter Clock"'),
-
-        Phase(99999999, 60, is_spellcard=True, name='Secret Barrage "And Then Will there be None?"'),
-
-        Phase(7000, 120, is_spellcard=True, name='Q.E.D. "Ripples of 495 Years"')
-    )
-
     def __init__(self, x, y, window, screen_width = 600):
         super().__init__()
         self.sprites = load_sprite_sheets("Flandre", 24, 32, 8, 2.5, "right")
@@ -79,16 +52,47 @@ class Boss(pygame.sprite.Sprite):
         self.sprite_screen_center_x = (self.screen_width-self.rect.width/4)/2
         self.desired_x, self.desired_y = self.sprite_screen_center_x, 750/4
 
+        self.phases = (
+            Phase(5000, 30, start_spellcard_health=3000),
+            Phase(None, 60, is_spellcard=True, name='Taboo "Cranberry Trap"'),
+
+            Phase(2000, 30, start_spellcard_health=3000),
+            Phase(None, 60, is_spellcard=True, name='Taboo "Laevateinn"'),
+
+            Phase(2000, 30, start_spellcard_health=4000),
+            Phase(None, 60, is_spellcard=True, name='Taboo "Four of a Kind"'),
+
+            Phase(2000, 30, start_spellcard_health=3000),
+            Phase(None, 60, is_spellcard=True, name='Taboo "Kagome, Kagome"'),
+
+            Phase(2000, 30, start_spellcard_health=3000),
+            Phase(None, 60, is_spellcard=True, name='Taboo "Maze of Love"'),
+
+            Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Starbow Break"'),
+
+            Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Catadioptric"'),
+
+            Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Counter Clock"'),
+
+            Phase(99999999, 60, is_spellcard=True, name='Secret Barrage "And Then Will there be None?"'),
+
+            Phase(7000, 120, is_spellcard=True, name='Q.E.D. "Ripples of 495 Years"')
+        )
+
         self.attacks_left = 9
         self.phase_health = 0
         self.health = self.phase_health
         self.phase_timer = 0
         self.phase_timer_delay = 0
         self.phase_index = 0
-        self.phase = self.PHASES[self.phase_index]
+        self.phase = self.phases[self.phase_index]
         self.phase_time_elapsed = 0
         self.in_spellcard = False
         self.start_phase()
+
+        self.spellcard_image_delay_over = False
+        self.spellcard_image_delay_tick = 1
+        self.spellcard_image_delay_duration = 60
 
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
@@ -156,7 +160,7 @@ class Boss(pygame.sprite.Sprite):
             play_sound(self.boss_hurt_sfx,0.1)
             
 
-        self.phase_timer_delay += 60
+        self.phase_timer_delay += 15
         if self.phase_timer_delay % self.FPS == 0:
             self.phase_timer -= 1
             if -1 < self.phase_timer < 10:
@@ -166,8 +170,14 @@ class Boss(pygame.sprite.Sprite):
             if self.phase.name is not None:
                 self.attacks_left -= 1
             self.phase_timer = self.phase.timer
-            self.phase_index = (self.phase_index + 1 ) % len(self.PHASES)
+            self.phase_index = (self.phase_index + 1 ) % len(self.phases)
             self.start_phase()
+
+        if self.spellcard_image_delay_tick % self.spellcard_image_delay_duration != 0 and not self.spellcard_image_delay_over:
+            self.spellcard_image_delay_tick += 1
+        else:
+            self.spellcard_image_delay_over = True
+
 
     def update_aura(self):
         self.aura.image = pygame.transform.rotate(self.aura.original_image, self.aura_rotation)
@@ -213,7 +223,7 @@ class Boss(pygame.sprite.Sprite):
         self.mask = pygame.mask.from_surface(self.image)
 
     def start_phase(self):
-        self.phase = self.PHASES[self.phase_index]
+        self.phase = self.phases[self.phase_index]
         
 
         if self.phase.is_spellcard:
@@ -231,7 +241,8 @@ class Boss(pygame.sprite.Sprite):
         self.phase_timer_delay = 0
         self.phase_time_elapsed = 0
 
-
+        self.spellcard_image_delay_over = False
+        self.spellcard_image_delay_tick = 1
 
     def draw(self):
         self.particles.draw(self.window)
