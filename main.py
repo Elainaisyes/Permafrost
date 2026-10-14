@@ -149,9 +149,10 @@ def draw (window, player, boss):
     boss.aura.draw()
     player.draw()
     boss.draw()
-    boss_spellcard_image.draw()
-    spellcard_bar.draw()
-    spellcard_text.draw(window)
+    if boss.phase_index > 0:
+        boss_spellcard_image.draw()
+        spellcard_bar.draw()
+        spellcard_text.draw(window)
     sidebar.draw()
     bars.draw(window)
     stars.draw(window)
@@ -225,7 +226,7 @@ def main(window):
 
         if boss.phase.name != last_spellcard_text and boss.phase.name is not None:
             # spellcard_bar.xpos = 220, y = 37
-            spellcard_bar.x_pos = boss_spellcard_image.rect.centerx - spellcard_bar.width/2
+            spellcard_bar.x_pos = 470 + boss_spellcard_image.rect.centerx - spellcard_bar.width/2
             spellcard_bar.y_pos = boss_spellcard_image.rect.centery + spellcard_bar.height*2.5
             last_spellcard_text = update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, boss.phase.name)
             set_spellcard_image(0.7, 255)
@@ -235,12 +236,17 @@ def main(window):
             spellcard_bar.x_pos += 15
             last_spellcard_text = update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, (boss.phase.name, spellcard_bar.x_pos))
 
-        if boss.spellcard_image_delay_over:
-            set_spellcard_image(min(2, boss_spellcard_image.scale_factor + 0.04), max(0, boss_spellcard_image.alpha - 8))
-        else:
-            boss_spellcard_image.rect.centerx = lerp(boss_spellcard_image.rect.centerx, 270 + 500*0.7/2, 0.1)
-            
-            
+        if boss.phase.is_spellcard:
+            if boss.spellcard_image_delay_over:
+                set_spellcard_image(min(2, boss_spellcard_image.scale_factor + 0.04), max(0, boss_spellcard_image.alpha - 8))
+                spellcard_bar.x_pos = lerp(spellcard_bar.x_pos, 220, 0.1)
+                spellcard_bar.y_pos = lerp(spellcard_bar.y_pos, 37, 0.1)
+                update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, (boss.phase.name, spellcard_bar.x_pos))
+            else:
+                boss_spellcard_image.rect.centerx = lerp(boss_spellcard_image.rect.centerx, 270 + 500*0.7/2, 0.1)
+                spellcard_bar.x_pos = lerp(spellcard_bar.x_pos, 470 - boss_spellcard_image.rect.width/2, 0.1)
+                update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, (boss.phase.name, spellcard_bar.x_pos))
+                
 
                 
 

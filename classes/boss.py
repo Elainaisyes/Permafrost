@@ -27,6 +27,7 @@ class Boss(pygame.sprite.Sprite):
     MAX_SPEED = 6
     SHOOT_DELAY = 4
     FPS = 60
+    SPELLCARD_IMAGE_DELAY = 90
 
     # Sprite rows
     IDLE_FORWARDS = "Flandre_row0_"
@@ -92,7 +93,6 @@ class Boss(pygame.sprite.Sprite):
 
         self.spellcard_image_delay_over = False
         self.spellcard_image_delay_tick = 1
-        self.spellcard_image_delay_duration = 60
 
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
@@ -106,6 +106,7 @@ class Boss(pygame.sprite.Sprite):
 
         self.time_running_out_sfx = pygame.mixer.Sound("assets/audios/sfx/timeout.wav")
         self.boss_hurt_sfx = pygame.mixer.Sound("assets/audios/sfx/plst00.wav")
+        self.spellcard_start_sfx = pygame.mixer.Sound("assets/audios/sfx/cat00.wav")
 
     def move(self):
         target_x = self.desired_x - self.rect.centerx
@@ -173,7 +174,7 @@ class Boss(pygame.sprite.Sprite):
             self.phase_index = (self.phase_index + 1 ) % len(self.phases)
             self.start_phase()
 
-        if self.spellcard_image_delay_tick % self.spellcard_image_delay_duration != 0 and not self.spellcard_image_delay_over:
+        if self.spellcard_image_delay_tick % self.SPELLCARD_IMAGE_DELAY != 0 and not self.spellcard_image_delay_over:
             self.spellcard_image_delay_tick += 1
         else:
             self.spellcard_image_delay_over = True
@@ -228,6 +229,7 @@ class Boss(pygame.sprite.Sprite):
 
         if self.phase.is_spellcard:
             self.in_spellcard = True
+            play_sound(self.spellcard_start_sfx, 0.5)
         else:
             self.in_spellcard = False
         print(self.phase.name or "Basic_Attack", self.phase_index)
