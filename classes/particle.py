@@ -1,4 +1,5 @@
-import pygame, math
+import pygame
+from math import cos, sin, radians
 
 class Particle (pygame.sprite.Sprite):
 
@@ -23,8 +24,8 @@ class Particle (pygame.sprite.Sprite):
         self.rect = self.image.get_rect(center=(round(self.posX), round(self.posY)))
 
     def move(self):
-        dx = math.cos(math.radians(self.angle_direction))
-        dy = math.sin(math.radians(self.angle_direction))
+        dx = cos(radians(self.angle_direction))
+        dy = sin(radians(self.angle_direction))
         self.posX += dx * self.speed
         self.posY += dy * self.speed
         self.rect.center = (round(self.posX), round(self.posY))

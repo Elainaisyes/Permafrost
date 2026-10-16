@@ -243,11 +243,13 @@ class Player(pygame.sprite.Sprite):
         self.shoot_delay = 4 if self.damage_level == 1 else 2
 
         big_bullets_desired_alpha = 0 if not self.damage_level == 3 else 255
-        big_bullets_alpha = self.bottom_left_big_bullet.image.get_alpha()
+        big_bullets_alpha = self.bottom_left_big_bullet.alpha
         new_alpha = lerp(big_bullets_alpha, big_bullets_desired_alpha, 0.15)
 
-        self.bottom_left_big_bullet.image.set_alpha(new_alpha)
-        self.bottom_right_big_bullet.image.set_alpha(new_alpha)
+        self.bottom_left_big_bullet.alpha = new_alpha
+        self.bottom_right_big_bullet.alpha = new_alpha
+        self.bottom_left_big_bullet.image.set_alpha(round(new_alpha))
+        self.bottom_right_big_bullet.image.set_alpha(round(new_alpha))
 
     def update_sprite(self):
         if self.looking_straight:

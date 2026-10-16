@@ -1,7 +1,6 @@
 import pygame
 from classes.player import Player
 from classes.boss import Boss
-from classes.background import Background
 from classes.basic_image import Basic_Image
 from classes.bar import Bar
 from util.return_letters import return_letters
@@ -51,11 +50,12 @@ stars = pygame.sprite.Group()
 red_star = pygame.image.load("assets/images/Star/Red_Star.png").convert_alpha()
 green_star = pygame.image.load("assets/images/Star/Green_Star.png").convert_alpha()
 
-main_background = Background(0, 0, WIDTH-SIDEBAR_WIDTH, HEIGHT, 'Game_Background.png', window)
-sidebar = Background(WIDTH-SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT, 'Sidebar_Background.png', window)
+main_background = Basic_Image(pygame.image.load("assets/images/Window_Background/Game_Background.png").convert_alpha(), 0, 0, WIDTH-SIDEBAR_WIDTH+50, HEIGHT, 1, window)
+spellcard_background = Basic_Image(pygame.image.load("assets/images/Window_Background/Spellcard_Background.png").convert_alpha(), 0, 0, WIDTH-SIDEBAR_WIDTH, HEIGHT, 1, window, alpha=0)
+sidebar = Basic_Image(pygame.image.load("assets/images/Window_Background/Sidebar_Background.png").convert_alpha(), WIDTH-SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT, 1, window)
 
 player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
-boss = Boss(GAME_WIDTH // 2 - 38, 50, window, GAME_WIDTH)
+boss = Boss(GAME_WIDTH // 2 - 38, 50, window, player, GAME_WIDTH)
 
 bars = pygame.sprite.Group()
 
@@ -146,6 +146,7 @@ def set_spellcard_image(scale_factor, alpha):
 
 def draw (window, player, boss):
     main_background.draw()
+    spellcard_background.draw()
     boss.aura.draw()
     player.draw()
     boss.draw()
@@ -192,11 +193,12 @@ def main(window):
         last_phase_timer = basic_text_update(last_phase_timer, boss.phase_timer, phase_timer_text, 
                           str(boss.phase_timer).zfill(2), GAME_WIDTH-67.5, 16, *DEFAULT_TEXT_SETUP, phase_timer_text, 1, 1.5, phase_timer_color)
         
+        last_score = basic_text_update(last_score, player.score, score_text, 
+                          str(player.score).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 138, *DEFAULT_TEXT_SETUP, score_text,  0.675, 1.25)
+        
         last_highscore = basic_text_update(last_highscore, player.highscore, highscore_text, 
                           str(player.highscore).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 98, *DEFAULT_TEXT_SETUP, highscore_text,  0.675, 1.25, (255, 255, 225))
 
-        last_score = basic_text_update(last_score, player.score, score_text, 
-                          str(player.score).zfill(9), SIDEBAR_OFFSET_PLACEMENT, 138, *DEFAULT_TEXT_SETUP, score_text,  0.675, 1.25)
         
         last_graze = basic_text_update(last_graze, player.graze, graze_text, 
                           str(player.graze), SIDEBAR_OFFSET_PLACEMENT, 378, *DEFAULT_TEXT_SETUP, graze_text,  0.75, 1.25, (217, 255, 236))
@@ -225,16 +227,19 @@ def main(window):
             last_power = player.power
 
         if boss.phase.name != last_spellcard_text and boss.phase.name is not None:
-            # spellcard_bar.xpos = 220, y = 37
             spellcard_bar.x_pos = 470 + boss_spellcard_image.rect.centerx - spellcard_bar.width/2
-            spellcard_bar.y_pos = boss_spellcard_image.rect.centery + spellcard_bar.height*2.5
+            spellcard_bar.y_pos = boss_spellcard_image.rect.centery + spellcard_bar.height*2.65
             last_spellcard_text = update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, boss.phase.name)
             set_spellcard_image(0.7, 255)
             boss_spellcard_image.rect.centerx = 470 + 500*0.7/2 # Add 500*0.7/2 because originally it's positioned by the topleft corner and not the center when rendered.
 
         if not boss.phase.is_spellcard and spellcard_bar.x_pos < 800:
-            spellcard_bar.x_pos += 15
-            last_spellcard_text = update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, (boss.phase.name, spellcard_bar.x_pos))
+            spellcard_background.alpha = lerp(spellcard_background.alpha, 0, 0.1)
+            spellcard_background.image.set_alpha(int(spellcard_background.alpha))
+
+            if spellcard_bar.x_pos < 800:
+                spellcard_bar.x_pos += 15
+                last_spellcard_text = update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, (boss.phase.name, spellcard_bar.x_pos))
 
         if boss.phase.is_spellcard:
             if boss.spellcard_image_delay_over:
@@ -246,6 +251,8 @@ def main(window):
                 boss_spellcard_image.rect.centerx = lerp(boss_spellcard_image.rect.centerx, 270 + 500*0.7/2, 0.1)
                 spellcard_bar.x_pos = lerp(spellcard_bar.x_pos, 470 - boss_spellcard_image.rect.width/2, 0.1)
                 update_spellcard_bar(spellcard_bar, boss, last_spellcard_text, (boss.phase.name, spellcard_bar.x_pos))
+                spellcard_background.alpha = lerp(spellcard_background.alpha, 150, 0.1)
+                spellcard_background.image.set_alpha(int(spellcard_background.alpha))
                 
 
                 
@@ -258,8 +265,7 @@ def main(window):
                 if event.key == pygame.K_ESCAPE:
                     running = False
             if event.type == pygame.MOUSEBUTTONDOWN:
-                boss.desired_x, boss.desired_y = pygame.mouse.get_pos()
-                player.power -= 125
+                pass
 
         player.loop(boss)
         boss.loop(player)

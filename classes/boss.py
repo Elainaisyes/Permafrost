@@ -1,8 +1,12 @@
 import pygame, math, random
 from classes.basic_image import Basic_Image
 from classes.particle import Particle
-from util.load_sprite_sheets import load_sprite_sheets
+from classes.boss_bullet import Boss_Bullet
+from util.load_sprite_sheets import load_sprite_sheets, load_sprite_sheet_row
 from util.play_sound import play_sound
+
+def lerp(current, target, multiplier):
+    return current + (target - current) * multiplier
 
 def lerp_angle(current, target, multiplier):
     delta = (target - current) % 360
@@ -36,7 +40,7 @@ class Boss(pygame.sprite.Sprite):
     IDLE_BACKWARDS_TURNED = "Flandre_row3_"
     MOVING = "Flandre_row2_"
 
-    def __init__(self, x, y, window, screen_width = 600):
+    def __init__(self, x, y, window, player, screen_width = 600):
         super().__init__()
         self.sprites = load_sprite_sheets("Flandre", 24, 32, 8, 2.5, "right")
         self.image = self.sprites[f"{self.IDLE_BACKWARDS}right"][0]
@@ -52,6 +56,8 @@ class Boss(pygame.sprite.Sprite):
         self.screen_width = screen_width
         self.sprite_screen_center_x = (self.screen_width-self.rect.width/4)/2
         self.desired_x, self.desired_y = self.sprite_screen_center_x, 750/4
+
+        self.player = player
 
         self.phases = (
             Phase(5000, 30, start_spellcard_health=3000),
@@ -93,6 +99,13 @@ class Boss(pygame.sprite.Sprite):
 
         self.spellcard_image_delay_over = False
         self.spellcard_image_delay_tick = 1
+
+        #Used to set minimum speeds of the spiral bullets
+        self.spiral_bullet_layer = 1
+
+        self.bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*4, 8, 1.25, "bullet")
+        self.bullets = pygame.sprite.Group()
+        self.basic_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan01.wav")
 
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
@@ -141,6 +154,10 @@ class Boss(pygame.sprite.Sprite):
         self.y_pos += self.y_velocity
         self.rect.topleft = (round(self.x_pos), round(self.y_pos))
 
+    def set_desired_position(self, x, y):
+        self.desired_x = x
+        self.desired_y = y
+
     def loop(self, player):
         self.move()
         for particle in self.particles:
@@ -161,7 +178,7 @@ class Boss(pygame.sprite.Sprite):
             play_sound(self.boss_hurt_sfx,0.1)
             
 
-        self.phase_timer_delay += 15
+        self.phase_timer_delay += 1
         if self.phase_timer_delay % self.FPS == 0:
             self.phase_timer -= 1
             if -1 < self.phase_timer < 10:
@@ -178,6 +195,12 @@ class Boss(pygame.sprite.Sprite):
             self.spellcard_image_delay_tick += 1
         else:
             self.spellcard_image_delay_over = True
+
+        self.boss_action(self.player)
+
+        self.phase_time_elapsed += 1
+        for bullet in self.bullets:
+            bullet.loop()
 
 
     def update_aura(self):
@@ -225,8 +248,8 @@ class Boss(pygame.sprite.Sprite):
 
     def start_phase(self):
         self.phase = self.phases[self.phase_index]
+        self.phase_time_elapsed = 0
         
-
         if self.phase.is_spellcard:
             self.in_spellcard = True
             play_sound(self.spellcard_start_sfx, 0.5)
@@ -246,6 +269,38 @@ class Boss(pygame.sprite.Sprite):
         self.spellcard_image_delay_over = False
         self.spellcard_image_delay_tick = 1
 
+    def boss_action(self, player):
+        # When checking for time elasped, need to make sure only to use increments of 0.05, anything else may not fulfill checking requirements due to floating point decimals
+        time_elapsed = self.phase_time_elapsed / 60
+        cycle_frame = self.phase_time_elapsed % 30
+
+        for bullet in self.bullets:
+            if bullet.type == "spiral":
+                bullet.speed = lerp(bullet.speed, bullet.minimum_speed, 0.2)
+
+        for bullet in self.bullets:
+            if bullet.rect.top > 750 or bullet.rect.bottom < 0 or bullet.rect.right < 0 or bullet.rect.left > self.screen_width:
+                bullet.kill()
+        if self.phase_index == 0:
+            # First basic attack before Cranberry Trap
+            if cycle_frame == 0:
+                play_sound(self.basic_attack_sfx, 0.125)
+                self.spiral_bullet_layer = 1
+            if cycle_frame in {0, 3, 6}:
+                self.spiral_pattern(360 / 32, cycle_frame*2/3, 2.5 + 0.5*(self.spiral_bullet_layer-1))
+                self.spiral_bullet_layer += 1
+
+            if self.phase_time_elapsed % 90 == 0:
+                self.set_desired_position(random.randint(0,400), random.randint(100,200))
+
+    def spiral_pattern(self, spiral_pattern_angle, angle_offset=0, minimum_speed=2.5):
+        bullet_count = math.floor(360 / spiral_pattern_angle)
+        angle_step = 360 / bullet_count
+
+        for i in range(bullet_count):
+            Boss_Bullet(self.rect.centerx - 8, self.rect.centery - 8, self.bullet_sprites["Projectiles_bullet"][6],self.window, 15, 90 - i * angle_step + angle_offset, 255, 1.25, "spiral", minimum_speed, self.bullets,)
+
     def draw(self):
         self.particles.draw(self.window)
         self.window.blit(self.image, self.rect)
+        self.bullets.draw(self.window)
