@@ -59,20 +59,27 @@ class Boss(pygame.sprite.Sprite):
 
         self.player = player
 
+        self.window = window
+        self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
+        self.aura = Basic_Image(self.aura_sprite, self.rect.x, self.rect.y, 500, 500, 0.42, self.window, color=(255,88,88,188))
+        self.aura.original_image = self.aura.image
+        self.aura_rotation = 0
+        self.aura_rotation_speed = 2
+
         self.phases = (
             Phase(5000, 30, start_spellcard_health=3000),
             Phase(None, 60, is_spellcard=True, name='Taboo "Cranberry Trap"'),
 
-            Phase(2000, 30, start_spellcard_health=3000),
+            Phase(5000, 30, start_spellcard_health=3000),
             Phase(None, 60, is_spellcard=True, name='Taboo "Laevateinn"'),
 
-            Phase(2000, 30, start_spellcard_health=4000),
+            Phase(5000, 30, start_spellcard_health=4000),
             Phase(None, 60, is_spellcard=True, name='Taboo "Four of a Kind"'),
 
-            Phase(2000, 30, start_spellcard_health=3000),
+            Phase(5000, 30, start_spellcard_health=3000),
             Phase(None, 60, is_spellcard=True, name='Taboo "Kagome, Kagome"'),
 
-            Phase(2000, 30, start_spellcard_health=3000),
+            Phase(5000, 30, start_spellcard_health=3000),
             Phase(None, 60, is_spellcard=True, name='Taboo "Maze of Love"'),
 
             Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Starbow Break"'),
@@ -103,19 +110,54 @@ class Boss(pygame.sprite.Sprite):
         #Used to set minimum speeds of the spiral bullets
         self.spiral_bullet_layer = 1
 
+        self.cranberry_auras = pygame.sprite.Group()
+
+        # Used for finding positions and bounds for the aura emitters in Cranberry Trap
+        self.cranberry_aura_bounds = {
+            "top": 12,
+            "left": 12,
+            "bottom": 750-12,
+            "right": 600-12,
+        }
+
+        edge_positions = {
+            "topright": (self.cranberry_aura_bounds["right"], self.cranberry_aura_bounds['top']),
+            "topleft": (self.cranberry_aura_bounds["left"], self.cranberry_aura_bounds['top']),
+            "bottomleft": (self.cranberry_aura_bounds["left"], self.cranberry_aura_bounds['bottom']),
+            "bottomright": (self.cranberry_aura_bounds["right"], self.cranberry_aura_bounds['bottom']),
+        }
+
+        for index, (itr, (x, y)) in enumerate(zip(self.cranberry_aura_bounds, edge_positions.values())):
+            aura = Boss_Bullet(0, 0, self.aura_sprite, self.window, 10, 0, 0, 0.21, "emitter", 0, self.cranberry_auras)
+            aura.rect.center = (x, y)
+            aura.edge = itr
+            horizontal = (1, 0) if x == self.cranberry_aura_bounds["left"] else (-1, 0)
+            vertical = (0, 1) if y == self.cranberry_aura_bounds["top"] else (0, -1)
+            aura.direction = random.choice((horizontal, vertical))
+            aura.frozen = False
+            aura.frozen_timer = 0
+            aura.frozen_wait_time = random.randint(20,60)
+            aura.bullet_color_index = 6 if index % 2 == 0 else 4
+            aura.activation_priority = 1 if index % 2 == 1 else 2
+            aura.can_shoot = True
+            aura.activation_timer = 0
+            aura.activation_threshold = 120
+
+
+        for cranberry_aura in self.cranberry_auras:
+            tinted = cranberry_aura.image.copy()
+            tinted.fill((255,88,88,255), special_flags=pygame.BLEND_RGBA_MULT)
+            cranberry_aura.image = tinted
+
         self.bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*4, 8, 1.25, "bullet")
+        self.round_bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*3, 8, 1, "round_bullet")
         self.bullet_leftover_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*15, 8, 1.25, "leftover")
         self.bullets = pygame.sprite.Group()
         self.leftovers = pygame.sprite.Group()
+        self.higher_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan00.wav")
         self.basic_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan01.wav")
+        self.sparkle_sfx = pygame.mixer.Sound('assets/audios/sfx/kira00.wav')
 
-
-        self.window = window
-        self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
-        self.aura = Basic_Image(self.aura_sprite, self.rect.x, self.rect.y, 500, 500, 0.42, self.window, color=(255,88,88,188))
-        self.aura.original_image = self.aura.image
-        self.aura_rotation = 0
-        self.aura_rotation_speed = 2
 
         self.particles = pygame.sprite.Group()
         self.particle_offset_y = 0
@@ -193,6 +235,9 @@ class Boss(pygame.sprite.Sprite):
             check_start_health = self.health <= self.phase.start_spellcard_health
             
         if self.phase_timer < 0 or self.health <= 0 or check_start_health:
+            if self.health >= 0 and self.phase.is_spellcard:
+                play_sound(pygame.mixer.Sound('assets/audios/sfx/cat00.wav'))
+
             self.create_leftovers()
             if self.phase.name is not None:
                 self.attacks_left -= 1
@@ -214,7 +259,7 @@ class Boss(pygame.sprite.Sprite):
         for leftover in self.leftovers:
             leftover.alpha = lerp(leftover.alpha, 0, 0.05)
             leftover.image.set_alpha(leftover.alpha)
-            if leftover.alpha <= 0:
+            if leftover.alpha <= 1:
                 leftover.kill()
 
         collider = player if not player.shift_down else player.shift_hitbox_marker
@@ -316,43 +361,153 @@ class Boss(pygame.sprite.Sprite):
                 bullet.kill()
 
         if self.phase_index == 0:
-            cycle_frame = self.phase_time_elapsed % 60
             # First Basic Attack
-            if cycle_frame == 0:
-                play_sound(self.basic_attack_sfx, 0.125)
-                self.spiral_bullet_layer = 1
-                self.first_volley_pos = self.rect.centerx-8, self.rect.centery-8
-            if cycle_frame in {0, 1}:
-                x, y = self.first_volley_pos
-                self.spiral_pattern(x, y, 360 / 32, 0, 3 - 0.5*(self.spiral_bullet_layer-1), 1.25)
-                self.spiral_bullet_layer += 1
+            if time_elapsed >= 1:
+                self.spiral_attack(1, 32, 3, {0, 1}, True, 0.5, 0, 1.25, 1)
+
             if self.phase_time_elapsed % 120 == 0:
-                self.set_desired_position(random.randint(0,400), random.randint(75,150))
+                self.set_desired_position(random.randint(100,500), random.randint(75,150))
+
+        if self.phase_index == 1:
+            # Taboo Cranberry Trap
+            cycle_frame = self.phase_time_elapsed % 12
+
+            if time_elapsed == 0:
+                self.set_desired_position(300, 100)
+
+            if self.phase_time_elapsed % 150 == 0 and self.phase_time_elapsed > 0:
+                self.set_desired_position(random.randint(200,400), random.randint(75,150))
+
+            if time_elapsed >= 1:
+                for aura in self.cranberry_auras:
+                    if aura.activation_priority == 1:
+                        aura.alpha = lerp(aura.alpha, 188, 0.1)
+                        if aura.alpha >= 187: 
+                            aura.alpha = 188
+                        aura.image.set_alpha(aura.alpha)
+
+                    if aura.alpha < 188:
+                        continue
+
+                    aura.activation_timer += 1
+                    if aura.activation_timer % aura.activation_threshold == 0:
+                        if aura.can_shoot:
+                            aura.activation_threshold = 45
+                        else:
+                            aura.activation_threshold = 150
+
+                        aura.can_shoot = not aura.can_shoot
+
+
+                    if aura.frozen:
+                        aura.frozen_timer += 1
+                        if aura.frozen_timer >= aura.frozen_wait_time:
+                            aura.frozen_timer = 0
+                            aura.frozen = False
+                    else:
+                        aura.speed = lerp(aura.speed, 5, 0.02)
+                    self.move_aura_emitter(aura, aura.speed)                     
+                    if cycle_frame == 0 and aura.can_shoot:
+                        dx, dy = aura.direction
+                        offset_x, offset_y = 36 * dx, 36 * dy
+                        if aura.bullet_color_index == 6:
+                            play_sound(self.basic_attack_sfx, 0.0625)
+                            Boss_Bullet(aura.rect.centerx + offset_x, aura.rect.centery + offset_y, self.round_bullet_sprites["Projectiles_round_bullet"][aura.bullet_color_index], self.window, 2.5, math.degrees(math.atan2(player.shift_hitbox_marker.rect.centery-aura.rect.centery, player.shift_hitbox_marker.rect.centerx-aura.rect.centerx)), 255, 1.5, "normal", 5, self.bullets)
+                        else:
+                            play_sound(self.sparkle_sfx, 0.2)
+                            Boss_Bullet(aura.rect.centerx + offset_x, aura.rect.centery + offset_y, self.round_bullet_sprites["Projectiles_round_bullet"][aura.bullet_color_index], self.window, 2.5, math.degrees(math.atan2(750//2-aura.rect.centery, 600//2-aura.rect.centerx)), 255, 1.5, "normal", 5, self.bullets)
+
+            if time_elapsed >= 10:
+              for aura in self.cranberry_auras:
+                    if aura.activation_priority == 2:
+                        aura.alpha = lerp(aura.alpha, 188, 0.1)
+                        if aura.alpha >= 187: 
+                            aura.alpha = 188
+                        aura.image.set_alpha(aura.alpha)
+        elif self.phase_index == 2:
+            for aura in self.cranberry_auras:
+                aura.alpha = lerp(aura.alpha, 0, 0.1)
+                aura.image.set_alpha(aura.alpha)
+
+        if self.phase_index == 2:
+            if time_elapsed >= 1.5:
+                self.spiral_attack(0.5, 32, 3, {0,1}, True, 0.5, 0, 1.25, 1)
+
+            if self.phase_time_elapsed % 120 == 0:
+                self.set_desired_position(random.randint(200,400), random.randint(75,150))
 
         if self.phase_index == 12:
             # Basic attack before Catadiotropic
-            cycle_frame = self.phase_time_elapsed % 30
-            if cycle_frame == 0:
-                play_sound(self.basic_attack_sfx, 0.125)
-                self.spiral_bullet_layer = 1
-                self.first_volley_pos = self.rect.centerx-8, self.rect.centery-8
-            if cycle_frame in {0, 3, 6}:
-                x, y = self.first_volley_pos
-                self.spiral_pattern(x, y, 360 / 32, cycle_frame*2/3, 2.5 + 0.5*(self.spiral_bullet_layer-1), 1, 6)
-                self.spiral_bullet_layer += 1
+            if time_elapsed >= 1:
+                self.spiral_attack(0.5, 32, 2.5, {0, 3, 6}, True, -0.5, 2/3, 1, 6)
 
             if self.phase_time_elapsed % 90 == 0:
-                self.set_desired_position(random.randint(100,300), random.randint(75,150))
+                self.set_desired_position(random.randint(100,500), random.randint(75,150))
 
-    def spiral_pattern(self, x, y, spiral_pattern_angle, angle_offset=0, minimum_speed=2.5, scale=1, color_index=1):
+    def spiral_pattern(self, x, y, spiral_pattern_angle, angle_offset=0, minimum_speed=2.5, scale=1, color_index=1, aimed_angle=None):
         bullet_count = math.floor(360 / spiral_pattern_angle)
         angle_step = 360 / bullet_count
+        base_angle = aimed_angle if aimed_angle is not None else 90 + angle_offset
 
         for i in range(bullet_count):
-            Boss_Bullet(x, y, self.bullet_sprites["Projectiles_bullet"][color_index],self.window, 15, 90 - i * angle_step + angle_offset, 255, scale, "spiral", minimum_speed, self.bullets,)
+            angle = base_angle - i * angle_step
+            Boss_Bullet(x, y, self.bullet_sprites["Projectiles_bullet"][color_index],self.window, 15, angle, 255, scale, "spiral", minimum_speed, self.bullets,)
+
+    def spiral_attack(self, shoot_speed, bullet_count = 32, top_speed = 3, bullet_count_set={0}, use_first_volley_pos=True, bullet_speed_difference = 0.5, bullet_angle_offset_multiplier=2/3, scale=1, color_index=1, target_player = False):
+        cycle_frame = self.phase_time_elapsed % (shoot_speed * 60)
+
+        target_x, target_y, = self.player.shift_hitbox_marker.rect.center
+        aimed_angle = None
+        if target_player:
+            target_x, target_y = self.player.shift_hitbox_marker.rect.center
+            aimed_angle = math.degrees(math.atan2(target_y - self.rect.centery, target_x - self.rect.centerx))
+        if cycle_frame == 0:
+            play_sound(self.basic_attack_sfx, 0.125)
+            self.spiral_bullet_layer = 1
+            self.first_volley_pos = self.rect.centerx-8, self.rect.centery-8
+        if cycle_frame in bullet_count_set:
+            if use_first_volley_pos:
+                x, y = self.first_volley_pos
+            else:
+                x, y = self.rect.centerx - 8, self.rect.centery
+                
+            angle_offset = cycle_frame * bullet_angle_offset_multiplier if bullet_angle_offset_multiplier != 0 else 0
+            self.spiral_pattern(x, y, 360 / bullet_count, angle_offset, top_speed - bullet_speed_difference*(self.spiral_bullet_layer-1), scale, color_index, aimed_angle)
+            self.spiral_bullet_layer += 1
+
+
+    def move_aura_emitter(self, aura, speed):
+        bounds = self.cranberry_aura_bounds
+        dx, dy = aura.direction
+        x = aura.rect.centerx
+        y = aura.rect.centery
+
+        if not aura.frozen:
+            x += dx * speed
+            y += dy * speed
+
+        x = max(bounds["left"], min(bounds["right"], x))
+        y = max(bounds["top"], min(bounds["bottom"], y))
+
+        if x in (bounds["left"], bounds["right"]) and y in (bounds["top"], bounds["bottom"]):
+            aura.frozen = True
+            aura.frozen_wait_time = random.randint(20,60)
+            aura.speed = 10
+            if dx != 0: 
+                usual_turn = (0, 1 if y == bounds["top"] else -1)
+                reverse = (-dx, 0)
+            else:
+                usual_turn = (1 if x == bounds["left"] else -1, 0)
+                reverse = (0, -dy)
+
+            aura.direction = usual_turn if random.random() > 1/5 else reverse
+            aura.bullet_color_index = 6 if aura.bullet_color_index == 4 else 4
+
+        aura.rect.center = (x, y)
 
     def draw(self):
         self.particles.draw(self.window)
+        self.leftovers.draw(self.window)
+        self.cranberry_auras.draw(self.window)
         self.window.blit(self.image, self.rect)
         self.bullets.draw(self.window)
-        self.leftovers.draw(self.window)

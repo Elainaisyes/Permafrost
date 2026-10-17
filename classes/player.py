@@ -47,8 +47,8 @@ class Player(pygame.sprite.Sprite):
         
         self.highscore = 100
         self.score = 0
-        self.health = 3
-        self.bombs = 3
+        self.health = 5
+        self.bombs = 5
         self.power = 0
         self.graze = 0
 
@@ -246,7 +246,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.damage_level = 3 
 
-        self.damage = self.damage_level * 1.5
+        self.damage = self.damage_level * 2
         self.shoot_delay = 4 if self.damage_level == 1 else 2
 
         big_bullets_desired_alpha = 0 if not self.damage_level == 3 else 255

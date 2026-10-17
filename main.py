@@ -12,7 +12,7 @@ pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.init()
 
 pygame.mixer.init()
-pygame.mixer.set_num_channels(64)
+pygame.mixer.set_num_channels(128)
 
 pygame.mixer.music.load("assets/audios/U.N. Owen Was Her.mp3")
 pygame.mixer.music.play(loops=-1, start=2.0, fade_ms=5000)
