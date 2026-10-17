@@ -104,8 +104,11 @@ class Boss(pygame.sprite.Sprite):
         self.spiral_bullet_layer = 1
 
         self.bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*4, 8, 1.25, "bullet")
+        self.bullet_leftover_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*15, 8, 1.25, "leftover")
         self.bullets = pygame.sprite.Group()
+        self.leftovers = pygame.sprite.Group()
         self.basic_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan01.wav")
+
 
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
@@ -120,7 +123,7 @@ class Boss(pygame.sprite.Sprite):
         self.time_running_out_sfx = pygame.mixer.Sound("assets/audios/sfx/timeout.wav")
         self.boss_hurt_sfx = pygame.mixer.Sound("assets/audios/sfx/plst00.wav")
         self.spellcard_start_sfx = pygame.mixer.Sound("assets/audios/sfx/cat00.wav")
-
+        
     def move(self):
         target_x = self.desired_x - self.rect.centerx
         target_y = self.desired_y - self.rect.centery
@@ -184,11 +187,17 @@ class Boss(pygame.sprite.Sprite):
             if -1 < self.phase_timer < 10:
                 play_sound(self.time_running_out_sfx, 0.75)
 
-        if self.phase_timer < 0:
+        # Need to avoid comparison by None errors
+        check_start_health = False
+        if self.phase.start_spellcard_health is not None:
+            check_start_health = self.health <= self.phase.start_spellcard_health
+            
+        if self.phase_timer < 0 or self.health <= 0 or check_start_health:
+            self.create_leftovers()
             if self.phase.name is not None:
                 self.attacks_left -= 1
             self.phase_timer = self.phase.timer
-            self.phase_index = (self.phase_index + 1 ) % len(self.phases)
+            self.phase_index = (self.phase_index + 1) % len(self.phases)
             self.start_phase()
 
         if self.spellcard_image_delay_tick % self.SPELLCARD_IMAGE_DELAY != 0 and not self.spellcard_image_delay_over:
@@ -202,6 +211,31 @@ class Boss(pygame.sprite.Sprite):
         for bullet in self.bullets:
             bullet.loop()
 
+        for leftover in self.leftovers:
+            leftover.alpha = lerp(leftover.alpha, 0, 0.05)
+            leftover.image.set_alpha(leftover.alpha)
+            if leftover.alpha <= 0:
+                leftover.kill()
+
+        collider = player if not player.shift_down else player.shift_hitbox_marker
+        if not player.invulnerable:
+            boss_bullet_collided = pygame.sprite.spritecollide(collider, self.bullets, True, pygame.sprite.collide_mask)
+            if boss_bullet_collided:
+                player.health = max(0, player.health-1)
+                play_sound(player.player_hit_sfx, 0.2)
+                self.create_leftovers()
+            else:
+                for bullet in self.bullets:
+                    offset = (bullet.rect.x - player.rect.x, bullet.rect.y - player.rect.y)                
+                    if player.graze_mask.overlap(bullet.mask, offset) is not None and not bullet.graze_detected:
+                        player.graze += 1
+                        play_sound(player.graze_sfx, 0.25)
+                        bullet.graze_detected = True
+
+    def create_leftovers(self):
+        for bullet in self.bullets: 
+            Boss_Bullet(bullet.rect.centerx,bullet.rect.centery,self.bullet_leftover_sprites["Projectiles_leftover"][10], self.window, 0, 90, 255, bullet.image.get_width() / 24, "normal", 2.5, self.leftovers)
+        self.bullets.empty()
 
     def update_aura(self):
         self.aura.image = pygame.transform.rotate(self.aura.original_image, self.aura_rotation)
@@ -272,7 +306,6 @@ class Boss(pygame.sprite.Sprite):
     def boss_action(self, player):
         # When checking for time elasped, need to make sure only to use increments of 0.05, anything else may not fulfill checking requirements due to floating point decimals
         time_elapsed = self.phase_time_elapsed / 60
-        cycle_frame = self.phase_time_elapsed % 30
 
         for bullet in self.bullets:
             if bullet.type == "spiral":
@@ -281,26 +314,45 @@ class Boss(pygame.sprite.Sprite):
         for bullet in self.bullets:
             if bullet.rect.top > 750 or bullet.rect.bottom < 0 or bullet.rect.right < 0 or bullet.rect.left > self.screen_width:
                 bullet.kill()
+
         if self.phase_index == 0:
-            # First basic attack before Cranberry Trap
+            cycle_frame = self.phase_time_elapsed % 60
+            # First Basic Attack
             if cycle_frame == 0:
                 play_sound(self.basic_attack_sfx, 0.125)
                 self.spiral_bullet_layer = 1
+                self.first_volley_pos = self.rect.centerx-8, self.rect.centery-8
+            if cycle_frame in {0, 1}:
+                x, y = self.first_volley_pos
+                self.spiral_pattern(x, y, 360 / 32, 0, 3 - 0.5*(self.spiral_bullet_layer-1), 1.25)
+                self.spiral_bullet_layer += 1
+            if self.phase_time_elapsed % 120 == 0:
+                self.set_desired_position(random.randint(0,400), random.randint(75,150))
+
+        if self.phase_index == 12:
+            # Basic attack before Catadiotropic
+            cycle_frame = self.phase_time_elapsed % 30
+            if cycle_frame == 0:
+                play_sound(self.basic_attack_sfx, 0.125)
+                self.spiral_bullet_layer = 1
+                self.first_volley_pos = self.rect.centerx-8, self.rect.centery-8
             if cycle_frame in {0, 3, 6}:
-                self.spiral_pattern(360 / 32, cycle_frame*2/3, 2.5 + 0.5*(self.spiral_bullet_layer-1))
+                x, y = self.first_volley_pos
+                self.spiral_pattern(x, y, 360 / 32, cycle_frame*2/3, 2.5 + 0.5*(self.spiral_bullet_layer-1), 1, 6)
                 self.spiral_bullet_layer += 1
 
             if self.phase_time_elapsed % 90 == 0:
-                self.set_desired_position(random.randint(0,400), random.randint(100,200))
+                self.set_desired_position(random.randint(100,300), random.randint(75,150))
 
-    def spiral_pattern(self, spiral_pattern_angle, angle_offset=0, minimum_speed=2.5):
+    def spiral_pattern(self, x, y, spiral_pattern_angle, angle_offset=0, minimum_speed=2.5, scale=1, color_index=1):
         bullet_count = math.floor(360 / spiral_pattern_angle)
         angle_step = 360 / bullet_count
 
         for i in range(bullet_count):
-            Boss_Bullet(self.rect.centerx - 8, self.rect.centery - 8, self.bullet_sprites["Projectiles_bullet"][6],self.window, 15, 90 - i * angle_step + angle_offset, 255, 1.25, "spiral", minimum_speed, self.bullets,)
+            Boss_Bullet(x, y, self.bullet_sprites["Projectiles_bullet"][color_index],self.window, 15, 90 - i * angle_step + angle_offset, 255, scale, "spiral", minimum_speed, self.bullets,)
 
     def draw(self):
         self.particles.draw(self.window)
         self.window.blit(self.image, self.rect)
         self.bullets.draw(self.window)
+        self.leftovers.draw(self.window)

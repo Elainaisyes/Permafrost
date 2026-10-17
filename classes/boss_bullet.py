@@ -13,6 +13,9 @@ class Boss_Bullet(pygame.sprite.Sprite):
         self.minimum_speed = minimum_speed
         self.window = window
         self.type = type
+        self.scale = scale
+
+        self.graze_detected = False
 
         #rotozooom instead of rotate to make the image come out smoother.
         self.image = pygame.transform.rotozoom(self.original_image, 90 - angle, scale)

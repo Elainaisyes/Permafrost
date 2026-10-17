@@ -3,6 +3,7 @@ from classes.particle import Particle
 from classes.player_bullet import Player_Bullet
 from util.load_sprite_sheets import load_sprite_sheet_row, load_sprite_sheets
 from util.play_sound import play_sound
+from util.scale_mask import scale_mask
 
 def lerp(start, end, multiplier):
     return start + (end - start) * multiplier
@@ -29,11 +30,14 @@ class Player(pygame.sprite.Sprite):
         self.y_pos = float(y)
         self.rect = self.image.get_rect(topleft=(self.x_pos, self.y_pos))
         self.x_velocity, self.y_velocity = 0, 0
-        self.mask = pygame.mask.from_surface(self.image)
+        self.graze_mask = pygame.mask.from_surface(self.image)
+        self.mask = scale_mask(self.image, 0.5)
         self.direction = "right"
         self.animation_count = 0
         self.speed = self.BASE_SPEED
         self.alpha = 255
+
+        self.invulnerable = False
 
         self.window = window
         self.screen_width = screen_width
@@ -76,6 +80,7 @@ class Player(pygame.sprite.Sprite):
         self.shift_hitbox_marker = Player_Bullet(self.rect.centerx-10, self.rect.centery-10, 
                                                  self.marker_sprites["Projectiles_marker"][7], self.window,
                                                  0, False, False)
+        self.shift_hitbox_marker.mask = scale_mask(self.shift_hitbox_marker.image, 0.5)
         
         self.top_left_big_bullet = Player_Bullet(self.rect.centerx - self.bullet_offset_x - 24, self.rect.centery - 48 + self.bullet_offset_y,
                                              self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,
@@ -93,6 +98,8 @@ class Player(pygame.sprite.Sprite):
         self.player_shoot_sfx = pygame.mixer.Sound("assets/audios/sfx/tan00.wav")
         self.graze_sfx = pygame.mixer.Sound("assets/audios/sfx/graze.wav")
         self.bullet_hit_sfx = pygame.mixer.Sound("assets/audios/sfx/damage00.wav")
+        self.player_hit_sfx = pygame.mixer.Sound("assets/audios/sfx/pldead00.wav")
+        self.graze_sfx = pygame.mixer.Sound("assets/audios/sfx/graze.wav")
 
     def move (self, dx, dy):            
         self.x_pos += dx
@@ -239,7 +246,7 @@ class Player(pygame.sprite.Sprite):
         else:
             self.damage_level = 3 
 
-        self.damage = self.damage_level
+        self.damage = self.damage_level * 1.5
         self.shoot_delay = 4 if self.damage_level == 1 else 2
 
         big_bullets_desired_alpha = 0 if not self.damage_level == 3 else 255
