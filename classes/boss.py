@@ -545,25 +545,26 @@ class Boss(pygame.sprite.Sprite):
         self.update_beam(beam)
 
 
-    def update_beam(self, beam):
+    def update_beam(self, beam, length = 300, screen_length=True):
         start_x, start_y = beam.start_pos
         angle = math.radians(beam.angle_direction)
         dx, dy = math.cos(angle), math.sin(angle)
 
-        screen_width, screen_height = 600, 750
-        edge_distances = []
+        if screen_length:
+            screen_width, screen_height = 600, 750
+            edge_distances = []
 
-        if dx > 0:
-            edge_distances.append((screen_width - start_x) / dx)
-        elif dx < 0:
-            edge_distances.append(-start_x / dx)
+            if dx > 0:
+                edge_distances.append((screen_width - start_x) / dx)
+            elif dx < 0:
+                edge_distances.append(-start_x / dx)
 
-        if dy > 0:
-            edge_distances.append((screen_height - start_y) / dy)
-        elif dy < 0:
-            edge_distances.append(-start_y / dy)
+            if dy > 0:
+                edge_distances.append((screen_height - start_y) / dy)
+            elif dy < 0:
+                edge_distances.append(-start_y / dy)
 
-        length = max(1, round(min(distance for distance in edge_distances if distance >= 0)))
+        length = max(1, round(min(distance for distance in edge_distances if distance >= 0))) if screen_length else length
         thickness = max(1, round(beam.width))
 
         vertical_image = pygame.transform.smoothscale(beam.original_image, (thickness, length))
