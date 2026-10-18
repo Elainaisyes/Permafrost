@@ -107,6 +107,25 @@ class Boss(pygame.sprite.Sprite):
         self.spellcard_image_delay_over = False
         self.spellcard_image_delay_tick = 1
 
+        self.bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*4, 8, 1.25, "bullet")
+        self.round_bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*3, 8, 1, "round_bullet")
+        self.bullet_leftover_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*15, 8, 1.25, "leftover")
+        self.fog_sprites = load_sprite_sheet_row("Projectiles", 32, 32, 8, 9 + 32*6.5, 8, 1, "fog")
+        self.beam_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 8, 9 + 16*0, 8, 1, "beam")
+        self.bullets = pygame.sprite.Group()
+        self.leftovers = pygame.sprite.Group()
+        self.higher_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan00.wav")
+        self.basic_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan01.wav")
+        self.sparkle_sfx = pygame.mixer.Sound('assets/audios/sfx/kira00.wav')
+
+
+        self.particles = pygame.sprite.Group()
+        self.particle_offset_y = 0
+
+        self.time_running_out_sfx = pygame.mixer.Sound("assets/audios/sfx/timeout.wav")
+        self.boss_hurt_sfx = pygame.mixer.Sound("assets/audios/sfx/plst00.wav")
+        self.spellcard_start_sfx = pygame.mixer.Sound("assets/audios/sfx/cat00.wav")
+
         #Used to set minimum speeds of the spiral bullets
         self.spiral_bullet_layer = 1
 
@@ -149,22 +168,10 @@ class Boss(pygame.sprite.Sprite):
             tinted.fill((255,88,88,255), special_flags=pygame.BLEND_RGBA_MULT)
             cranberry_aura.image = tinted
 
-        self.bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*4, 8, 1.25, "bullet")
-        self.round_bullet_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*3, 8, 1, "round_bullet")
-        self.bullet_leftover_sprites = load_sprite_sheet_row("Projectiles", 16, 16, 16, 9 + 16*15, 8, 1.25, "leftover")
-        self.bullets = pygame.sprite.Group()
-        self.leftovers = pygame.sprite.Group()
-        self.higher_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan00.wav")
-        self.basic_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan01.wav")
-        self.sparkle_sfx = pygame.mixer.Sound('assets/audios/sfx/kira00.wav')
-
-
-        self.particles = pygame.sprite.Group()
-        self.particle_offset_y = 0
-
-        self.time_running_out_sfx = pygame.mixer.Sound("assets/audios/sfx/timeout.wav")
-        self.boss_hurt_sfx = pygame.mixer.Sound("assets/audios/sfx/plst00.wav")
-        self.spellcard_start_sfx = pygame.mixer.Sound("assets/audios/sfx/cat00.wav")
+        self.fogs = pygame.sprite.Group()
+        self.beams = pygame.sprite.Group()
+        Boss_Bullet(200, 200, self.fog_sprites["Projectiles_fog"][1], self.window, 10, 0, 255, 2, "fog", 0, self.fogs)
+        self.shooting_beams = True
         
     def move(self):
         target_x = self.desired_x - self.rect.centerx
@@ -356,11 +363,17 @@ class Boss(pygame.sprite.Sprite):
             if bullet.type == "spiral":
                 bullet.speed = lerp(bullet.speed, bullet.minimum_speed, 0.2)
 
+        for beam in self.beams:
+            beam.width = lerp(beam.width, 0, 0.15)
+            self.update_beam(beam)
+            if beam.width <= 5:
+                beam.kill()
+
         for bullet in self.bullets:
             if bullet.rect.top > 750 or bullet.rect.bottom < 0 or bullet.rect.right < 0 or bullet.rect.left > self.screen_width:
                 bullet.kill()
 
-        if self.phase_index == 0:
+        if self.phase_index == 1:
             # First Basic Attack
             if time_elapsed >= 1:
                 self.spiral_attack(1, 32, 3, {0, 1}, True, 0.5, 0, 1.25, 1)
@@ -430,11 +443,29 @@ class Boss(pygame.sprite.Sprite):
                 aura.image.set_alpha(aura.alpha)
 
         if self.phase_index == 2:
+            # Basic attack before Laevateinn
             if time_elapsed >= 1.5:
                 self.spiral_attack(0.5, 32, 3, {0,1}, True, 0.5, 0, 1.25, 1)
 
             if self.phase_time_elapsed % 120 == 0:
                 self.set_desired_position(random.randint(200,400), random.randint(75,150))
+
+        if self.phase_index == 0:
+            # Taboo Laevateinn
+            cycle_frame = self.phase_time_elapsed % 2
+
+            if cycle_frame == 0 and self.shooting_beams:
+                self.create_beam()
+
+            if self.phase_time_elapsed % 30 and 2 > self.phase_time_elapsed > 0:
+                self.set_desired_position(random.randint(1,100), random.randint(75,150))
+
+            if self.phase_time_elapsed % 120 == 0:
+                if self.rect.centerx -1 <= 100:
+                    self.set_desired_position(500,100)
+                elif self.rect.centerx + 1 >= 500:
+                    self.set_desired_position(100,100)
+                    self.shooting_beams = False
 
         if self.phase_index == 12:
             # Basic attack before Catadiotropic
@@ -505,9 +536,59 @@ class Boss(pygame.sprite.Sprite):
 
         aura.rect.center = (x, y)
 
+    def create_beam(self, angle=90, color_index=2):
+        start_x, start_y = self.rect.center
+        Boss_Bullet(start_x, start_y, self.beam_sprites["Projectiles_beam"][color_index], self.window, 0, angle, 255, 2, "beam", 0, self.beams)
+        beam = self.beams.sprites()[-1]
+        beam.start_pos = self.rect.center
+        beam.width = 16*beam.scale
+        self.update_beam(beam)
+
+
+    def update_beam(self, beam):
+        start_x, start_y = beam.start_pos
+        angle = math.radians(beam.angle_direction)
+        dx, dy = math.cos(angle), math.sin(angle)
+
+        screen_width, screen_height = 600, 750
+        edge_distances = []
+
+        if dx > 0:
+            edge_distances.append((screen_width - start_x) / dx)
+        elif dx < 0:
+            edge_distances.append(-start_x / dx)
+
+        if dy > 0:
+            edge_distances.append((screen_height - start_y) / dy)
+        elif dy < 0:
+            edge_distances.append(-start_y / dy)
+
+        length = max(1, round(min(distance for distance in edge_distances if distance >= 0)))
+        thickness = max(1, round(beam.width))
+
+        vertical_image = pygame.transform.smoothscale(beam.original_image, (thickness, length))
+
+        end_mask = pygame.Surface((thickness, length), pygame.SRCALPHA)
+        pygame.draw.rect(
+            end_mask,
+            (255, 255, 255, 255),
+            end_mask.get_rect(),
+            border_radius=thickness // 2,
+        )
+        vertical_image.blit(end_mask, (0, 0), special_flags=pygame.BLEND_RGBA_MULT)
+
+        beam.image = pygame.transform.rotate(vertical_image, 90 - beam.angle_direction)
+
+        end_x = start_x + dx * length
+        end_y = start_y + dy * length
+        beam.rect = beam.image.get_rect(center=(round((start_x + end_x) / 2), round((start_y + end_y) / 2)))
+        beam.mask = pygame.mask.from_surface(beam.image)
+
     def draw(self):
         self.particles.draw(self.window)
         self.leftovers.draw(self.window)
         self.cranberry_auras.draw(self.window)
+        self.beams.draw(self.window)
+        self.fogs.draw(self.window)
         self.window.blit(self.image, self.rect)
         self.bullets.draw(self.window)

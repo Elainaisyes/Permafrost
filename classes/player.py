@@ -37,7 +37,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = self.BASE_SPEED
         self.alpha = 255
 
-        self.invulnerable = False
+        self.invulnerable = True
 
         self.window = window
         self.screen_width = screen_width
