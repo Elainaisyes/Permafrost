@@ -31,13 +31,13 @@ class Player(pygame.sprite.Sprite):
         self.rect = self.image.get_rect(topleft=(self.x_pos, self.y_pos))
         self.x_velocity, self.y_velocity = 0, 0
         self.graze_mask = pygame.mask.from_surface(self.image)
-        self.mask = scale_mask(self.image, 0.5)
+        self.mask = scale_mask(self.image, 0.4)
         self.direction = "right"
         self.animation_count = 0
         self.speed = self.BASE_SPEED
         self.alpha = 255
 
-        self.invulnerable = True
+        self.invulnerable = False
 
         self.window = window
         self.screen_width = screen_width
@@ -80,7 +80,7 @@ class Player(pygame.sprite.Sprite):
         self.shift_hitbox_marker = Player_Bullet(self.rect.centerx-10, self.rect.centery-10, 
                                                  self.marker_sprites["Projectiles_marker"][7], self.window,
                                                  0, False, False)
-        self.shift_hitbox_marker.mask = scale_mask(self.shift_hitbox_marker.image, 0.5)
+        self.shift_hitbox_marker.mask = scale_mask(self.shift_hitbox_marker.image, 0.3)
         
         self.top_left_big_bullet = Player_Bullet(self.rect.centerx - self.bullet_offset_x - 24, self.rect.centery - 48 + self.bullet_offset_y,
                                              self.big_bullet_sprites["Projectiles_big_bullet"][4], self.window,

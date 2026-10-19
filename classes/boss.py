@@ -73,7 +73,7 @@ class Boss(pygame.sprite.Sprite):
             Phase(5000, 30, start_spellcard_health=3000),
             Phase(None, 60, is_spellcard=True, name='Taboo "Laevateinn"'),
 
-            Phase(5000, 30, start_spellcard_health=4000),
+            Phase(6000, 30, start_spellcard_health=4000),
             Phase(None, 60, is_spellcard=True, name='Taboo "Four of a Kind"'),
 
             Phase(5000, 30, start_spellcard_health=3000),
@@ -117,6 +117,7 @@ class Boss(pygame.sprite.Sprite):
         self.higher_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan00.wav")
         self.basic_attack_sfx = pygame.mixer.Sound("assets/audios/sfx/tan01.wav")
         self.sparkle_sfx = pygame.mixer.Sound('assets/audios/sfx/kira00.wav')
+        self.beam_sfx = pygame.mixer.Sound('assets/audios/sfx/lazer00.wav')
 
 
         self.particles = pygame.sprite.Group()
@@ -170,8 +171,13 @@ class Boss(pygame.sprite.Sprite):
 
         self.fogs = pygame.sprite.Group()
         self.beams = pygame.sprite.Group()
-        Boss_Bullet(200, 200, self.fog_sprites["Projectiles_fog"][1], self.window, 10, 0, 255, 2, "fog", 0, self.fogs)
+        # Boss_Bullet(200, 200, self.fog_sprites["Projectiles_fog"][1], self.window, 10, 0, 255, 2, "fog", 0, self.fogs)
         self.shooting_beams = True
+        self.last_shooting_beams = False
+        self.beam_state = "SWEEP"
+        self.beam_direction = 1
+        self.beam_angle = -165
+        self.beam_angle_start_set = False
         
     def move(self):
         target_x = self.desired_x - self.rect.centerx
@@ -454,18 +460,22 @@ class Boss(pygame.sprite.Sprite):
             # Taboo Laevateinn
             cycle_frame = self.phase_time_elapsed % 2
 
-            if cycle_frame == 0 and self.shooting_beams:
-                self.create_beam()
+            if self.last_shooting_beams is not self.shooting_beams:
+                if self.shooting_beams:
+                    play_sound(self.beam_sfx, 0.2)
+                self.last_shooting_beams = self.shooting_beams
+
+            if self.beam_state == "SWEEP":
+                self.create_beam(cycle_frame, self.beam_angle)
+                if self.beam_direction == -1:
+                    #Clockwise
+                    self.beam_sweep(345, 90)
+                else:
+                    self.beam_sweep(90, 345)
+                    
 
             if self.phase_time_elapsed % 30 and 2 > self.phase_time_elapsed > 0:
-                self.set_desired_position(random.randint(1,100), random.randint(75,150))
-
-            if self.phase_time_elapsed % 120 == 0:
-                if self.rect.centerx -1 <= 100:
-                    self.set_desired_position(500,100)
-                elif self.rect.centerx + 1 >= 500:
-                    self.set_desired_position(100,100)
-                    self.shooting_beams = False
+                self.set_desired_position(300, 100)
 
         if self.phase_index == 12:
             # Basic attack before Catadiotropic
@@ -536,7 +546,9 @@ class Boss(pygame.sprite.Sprite):
 
         aura.rect.center = (x, y)
 
-    def create_beam(self, angle=90, color_index=2):
+    def create_beam(self, cycle_frame, angle=90, color_index=2):
+        if cycle_frame != 0 or not self.shooting_beams:
+            return
         start_x, start_y = self.rect.center
         Boss_Bullet(start_x, start_y, self.beam_sprites["Projectiles_beam"][color_index], self.window, 0, angle, 255, 2, "beam", 0, self.beams)
         beam = self.beams.sprites()[-1]
@@ -584,6 +596,27 @@ class Boss(pygame.sprite.Sprite):
         end_y = start_y + dy * length
         beam.rect = beam.image.get_rect(center=(round((start_x + end_x) / 2), round((start_y + end_y) / 2)))
         beam.mask = pygame.mask.from_surface(beam.image)
+
+    def beam_sweep(self, start_angle, end_angle, speed=2):
+        if not self.beam_angle_start_set:
+            self.beam_angle_start_set = True
+            self.beam_angle = start_angle % 360
+        self.beam_angle += speed
+
+        if self.beam_direction == 1:
+            if self.angle_distance(self.beam_angle, end_angle) <= speed:
+                self.beam_angle = end_angle % 360
+                self.beam_direction = -1
+        else:
+            if self.angle_distance(self.beam_angle, end_angle) <= speed:
+                self.beam_angle = end_angle % 360
+                self.beam_direction = 1
+
+    def angle_distance(self, current, target):
+        delta = (target - current) % 360
+        if delta > 180:
+            delta -= 360
+        return abs(delta)
 
     def draw(self):
         self.particles.draw(self.window)
