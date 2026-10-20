@@ -622,8 +622,7 @@ class Boss(pygame.sprite.Sprite):
             self.beam_angle = end_angle % 360
             self.beam_direction *= -1
             self.beam_angle_start_set = False
-            if self.first_sweep:
-                self.shooting_beams = True
+            self.shooting_beams = False
 
     def angle_distance(self, current, target):
         delta = (target - current) % 360
