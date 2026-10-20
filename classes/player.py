@@ -37,7 +37,7 @@ class Player(pygame.sprite.Sprite):
         self.speed = self.BASE_SPEED
         self.alpha = 255
 
-        self.invulnerable = False
+        self.invulnerable = True
 
         self.window = window
         self.screen_width = screen_width
@@ -112,7 +112,7 @@ class Player(pygame.sprite.Sprite):
                   - bullet_width/2 - self.rect.width//2)
 
         self.x_pos = max(min(self.x_pos, max_x), min_x)
-        self.y_pos = max(min(self.y_pos, self.window.height - self.rect.height/2
+        self.y_pos = max(min(self.y_pos, self.window.get_height() - self.rect.height/2
                                + 48 - bullet_height*2), 28-self.bullet_offset_y)
         
         self.rect.x = round(self.x_pos)

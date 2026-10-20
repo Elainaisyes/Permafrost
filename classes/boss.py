@@ -178,6 +178,7 @@ class Boss(pygame.sprite.Sprite):
         self.beam_direction = 1
         self.beam_angle = -165
         self.beam_angle_start_set = False
+        self.first_sweep = True
         
     def move(self):
         target_x = self.desired_x - self.rect.centerx
@@ -376,7 +377,7 @@ class Boss(pygame.sprite.Sprite):
                 beam.kill()
 
         for bullet in self.bullets:
-            if bullet.rect.top > 750 or bullet.rect.bottom < 0 or bullet.rect.right < 0 or bullet.rect.left > self.screen_width:
+            if bullet.rect.top > 750+100 or bullet.rect.bottom < 0-100 or bullet.rect.right < 0-100 or bullet.rect.left > self.screen_width+100:
                 bullet.kill()
 
         if self.phase_index == 1:
@@ -458,7 +459,8 @@ class Boss(pygame.sprite.Sprite):
 
         if self.phase_index == 0:
             # Taboo Laevateinn
-            cycle_frame = self.phase_time_elapsed % 2
+            beam_cycle_frame = self.phase_time_elapsed % 2
+            bullet_cycle_frame = self.phase_time_elapsed % 5
 
             if self.last_shooting_beams is not self.shooting_beams:
                 if self.shooting_beams:
@@ -466,12 +468,23 @@ class Boss(pygame.sprite.Sprite):
                 self.last_shooting_beams = self.shooting_beams
 
             if self.beam_state == "SWEEP":
-                self.create_beam(cycle_frame, self.beam_angle)
+                self.create_beam(beam_cycle_frame, self.beam_angle)
+                if bullet_cycle_frame == 0 and self.shooting_beams:
+                    play_sound(self.basic_attack_sfx, 0.1)
+                    Boss_Bullet(self.rect.centerx, self.rect.centery, self.bullet_sprites["Projectiles_bullet"][1], self.window, 2.5, self.beam_angle+90, 255, 1.25, "normal", 2.5, self.bullets)
+                    for i in range(0, 750//100):
+                        spawn_distance = 100*i
+                        beam_origin = self.beams.sprites()[-1].start_pos if self.beams else self.rect.center
+                        beam_dir_x = math.cos(math.radians(self.beam_angle))
+                        beam_dir_y = math.sin(math.radians(self.beam_angle))
+                        spawn_x = beam_origin[0] + beam_dir_x * spawn_distance
+                        spawn_y = beam_origin[1] + beam_dir_y * spawn_distance
+                        Boss_Bullet(spawn_x, spawn_y, self.bullet_sprites["Projectiles_bullet"][1], self.window, 2.5, self.beam_angle+90, 255, 1.25, "normal", 2.5, self.bullets)
                 if self.beam_direction == -1:
-                    #Clockwise
-                    self.beam_sweep(345, 90)
+                    #Counterclockwise
+                    self.beam_sweep(345, 85)
                 else:
-                    self.beam_sweep(90, 345)
+                    self.beam_sweep(195, 95)
                     
 
             if self.phase_time_elapsed % 30 and 2 > self.phase_time_elapsed > 0:
@@ -597,20 +610,20 @@ class Boss(pygame.sprite.Sprite):
         beam.rect = beam.image.get_rect(center=(round((start_x + end_x) / 2), round((start_y + end_y) / 2)))
         beam.mask = pygame.mask.from_surface(beam.image)
 
-    def beam_sweep(self, start_angle, end_angle, speed=2):
+    def beam_sweep(self, start_angle, end_angle, speed=2.25):
         if not self.beam_angle_start_set:
             self.beam_angle_start_set = True
             self.beam_angle = start_angle % 360
-        self.beam_angle += speed
+            return
 
-        if self.beam_direction == 1:
-            if self.angle_distance(self.beam_angle, end_angle) <= speed:
-                self.beam_angle = end_angle % 360
-                self.beam_direction = -1
-        else:
-            if self.angle_distance(self.beam_angle, end_angle) <= speed:
-                self.beam_angle = end_angle % 360
-                self.beam_direction = 1
+        self.beam_angle = (self.beam_angle + speed * self.beam_direction) % 360
+
+        if self.angle_distance(self.beam_angle, end_angle) <= speed:
+            self.beam_angle = end_angle % 360
+            self.beam_direction *= -1
+            self.beam_angle_start_set = False
+            if self.first_sweep:
+                self.shooting_beams = True
 
     def angle_distance(self, current, target):
         delta = (target - current) % 360
