@@ -44,7 +44,12 @@ attacks_left_text = pygame.sprite.Group()
 phase_timer_text = pygame.sprite.Group()
 spellcard_text = pygame.sprite.Group()
 
+menu_text = pygame.sprite.Group()
+
 SIDEBAR_OFFSET_PLACEMENT = GAME_WIDTH + 120
+
+paused = False
+menu_open = True
 
 stars = pygame.sprite.Group()
 red_star = pygame.image.load("assets/images/Star/Red_Star.png").convert_alpha()
@@ -53,6 +58,9 @@ green_star = pygame.image.load("assets/images/Star/Green_Star.png").convert_alph
 main_background = Basic_Image(pygame.image.load("assets/images/Window_Background/Game_Background.png").convert_alpha(), 0, 0, WIDTH-SIDEBAR_WIDTH+50, HEIGHT, 1, window)
 spellcard_background = Basic_Image(pygame.image.load("assets/images/Window_Background/Spellcard_Background.png").convert_alpha(), 0, 0, WIDTH-SIDEBAR_WIDTH, HEIGHT, 1, window, alpha=0)
 sidebar = Basic_Image(pygame.image.load("assets/images/Window_Background/Sidebar_Background.png").convert_alpha(), WIDTH-SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT, 1, window)
+
+menu_background = Basic_Image(pygame.image.load("assets/images/Window_Background/Menu_Background.png").convert_alpha(), 0, 0, WIDTH, HEIGHT, 1, window)
+cirno_portrait = Basic_Image(pygame.image.load("assets/images/Other/Cirno_Portrait.png").convert_alpha(), (WIDTH-SIDEBAR_WIDTH)//2-350, HEIGHT//2, 400, 400, 1, window)
 
 player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
 boss = Boss(GAME_WIDTH // 2 - 38, 50, window, player, GAME_WIDTH)
@@ -70,6 +78,8 @@ boss_spellcard_image = Basic_Image(pygame.image.load("assets/images/Other/Flandr
 power_bar_container = Bar(SIDEBAR_OFFSET_PLACEMENT, 330, 235, 30, (30, 30, 30), window, bars, has_border=True, border_color=(255,255,255))
 power_bar = Bar(SIDEBAR_OFFSET_PLACEMENT + 5, 335, 225, 20, (255, 255, 255), window, bars, is_gradient=True,
                 gradient_start_color=(255,255,255), gradient_end_color=(90,140,255), max_width=225)
+
+set_text("PERMAFROST", 20, 20, *DEFAULT_TEXT_SETUP, menu_text, 1.4, 2, (200,200,255,255))
 
 set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255,255,35,255))
 set_text(str(boss.attacks_left), 200, 18, *DEFAULT_TEXT_SETUP, attacks_left_text, 1, 1.5, (255,255,100,255))
@@ -145,30 +155,37 @@ def set_spellcard_image(scale_factor, alpha):
     boss_spellcard_image.rect = boss_spellcard_image.image.get_rect(center=boss_spellcard_image.rect.center)
 
 def draw (window, player, boss):
-    main_background.draw()
-    spellcard_background.draw()
-    boss.aura.draw()
-    player.draw()
-    boss.draw()
-    if boss.phase_index > 0:
-        boss_spellcard_image.draw()
-        spellcard_bar.draw()
-        spellcard_text.draw(window)
-    sidebar.draw()
-    bars.draw(window)
-    stars.draw(window)
-    letters.draw(window)
-    attacks_left_text.draw(window)
-    phase_timer_text.draw(window)
-    highscore_text.draw(window) 
-    score_text.draw(window)
-    power_text.draw(window)
-    graze_text.draw(window)
+    if not menu_open:
+        main_background.draw()
+        spellcard_background.draw()
+        boss.aura.draw()
+        player.draw()
+        boss.draw()
+        if boss.phase_index > 0:
+            boss_spellcard_image.draw()
+            spellcard_bar.draw()
+            spellcard_text.draw(window)
+        sidebar.draw()
+        bars.draw(window)
+        stars.draw(window)
+        letters.draw(window)
+        attacks_left_text.draw(window)
+        phase_timer_text.draw(window)
+        highscore_text.draw(window) 
+        score_text.draw(window)
+        power_text.draw(window)
+        graze_text.draw(window)
+    else:
+        menu_background.draw()
+        cirno_portrait.draw()
+        menu_text.draw(window)
     pygame.display.update()
 
 def main(window):
     running = True
     paused = False
+    menu_open = True
+
     clock = pygame.time.Clock()
 
     # Optimization helpers, ensures no needless running
@@ -273,12 +290,14 @@ def main(window):
                     else:
                         pygame.mixer.music.unpause()
                         pygame.mixer.unpause()
+                elif event.key == pygame.K_m:
+                    menu_open = not menu_open
 
         
 
 
                 
-        if not paused:
+        if not paused and not menu_open:
             player.loop(boss)
             boss.loop(player)
         draw(window, player, boss)

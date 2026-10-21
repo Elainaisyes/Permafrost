@@ -552,7 +552,6 @@ class Boss(pygame.sprite.Sprite):
                         self.set_desired_position(600, 75, 8)
 
                     elif self.wall_lifting:
-                        lift_arrived = (math.hypot(self.desired_x - self.rect.centerx, self.desired_y - self.rect.centery) <= 1)
                         now = pygame.time.get_ticks()
 
                         if self.wall_pause is None:
@@ -614,7 +613,15 @@ class Boss(pygame.sprite.Sprite):
             if self.phase_time_elapsed % 30 and 2 > self.phase_time_elapsed > 0:
                 self.set_desired_position(300, 100)
 
-        if self.phase_index == 12:
+        if self.phase_index == 4:
+            # Basic attack before Four of a Kind
+            if time_elapsed >= 1.75:
+                self.spiral_attack(1, 24, 6, {0, 2, 4}, True, 1.5, 0, 1.25, 1)
+
+            if self.phase_time_elapsed % 90 == 0:
+                self.set_desired_position(random.randint(100,500), random.randint(75,150))
+
+        if self.phase_index == 11:
             # Basic attack before Catadiotropic
             if time_elapsed >= 1:
                 self.spiral_attack(0.5, 32, 2.5, {0, 3, 6}, True, -0.5, 2/3, 1, 6)
