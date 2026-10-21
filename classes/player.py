@@ -37,7 +37,8 @@ class Player(pygame.sprite.Sprite):
         self.speed = self.BASE_SPEED
         self.alpha = 255
 
-        self.invulnerable = True
+        self.invulnerable = False
+        self.invulnerability_frames = 30
 
         self.window = window
         self.screen_width = screen_width
@@ -137,7 +138,7 @@ class Player(pygame.sprite.Sprite):
         self.shift_down = False
         
 
-        if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]:
+        if keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT] or keys[pygame.K_l]:
             speed /= 1.6
             self.shift_down = True
         
@@ -175,7 +176,7 @@ class Player(pygame.sprite.Sprite):
         desired_bullet_offset_y = 32 if not self.shift_down else -24
         self.bullet_offset_x = lerp(self.bullet_offset_x, desired_bullet_offset_x, 0.2)
         self.bullet_offset_y = lerp(self.bullet_offset_y, desired_bullet_offset_y, 0.2)
-        if keys[pygame.K_SPACE] or keys[pygame.K_z]:
+        if keys[pygame.K_SPACE] or keys[pygame.K_z] or  keys[pygame.K_k]:
             self.shoot_count += 1
             if self.shoot_count % self.shoot_delay == 0:
                 play_sound(self.player_shoot_sfx, 0.05)
@@ -202,6 +203,11 @@ class Player(pygame.sprite.Sprite):
         desired_alpha = 200 if self.shift_down else 255
         self.alpha = lerp(self.alpha, desired_alpha, 0.2)
         self.image.set_alpha(self.alpha)
+
+        if self.invulnerability_frames >= 0:
+            self.invulnerability_frames -= 1
+        else:
+            self.invulnerable = False
 
         if self.score > self.highscore:
             self.highscore = self.score

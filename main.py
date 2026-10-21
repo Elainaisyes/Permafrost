@@ -168,6 +168,7 @@ def draw (window, player, boss):
 
 def main(window):
     running = True
+    paused = False
     clock = pygame.time.Clock()
 
     # Optimization helpers, ensures no needless running
@@ -264,11 +265,22 @@ def main(window):
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     running = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                pass
+                elif event.key == pygame.K_p:
+                    paused = not paused
+                    if paused:
+                        pygame.mixer.music.pause()
+                        pygame.mixer.pause()
+                    else:
+                        pygame.mixer.music.unpause()
+                        pygame.mixer.unpause()
 
-        player.loop(boss)
-        boss.loop(player)
+        
+
+
+                
+        if not paused:
+            player.loop(boss)
+            boss.loop(player)
         draw(window, player, boss)
 
 
