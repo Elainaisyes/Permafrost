@@ -18,7 +18,7 @@ def get_line_width():
 
 
 def set_text(text, x, y, letters_dict, letter_size, window, group,
-             spacing, scale_factor, color=None, max_width=None):
+             spacing, scale_factor, color=None, max_width=None, text_shadow=None):
     global line_breaks 
     global line_width
 
@@ -65,6 +65,19 @@ def set_text(text, x, y, letters_dict, letter_size, window, group,
                 cursor_x += m_side_spacing
             elif character in {"w", "W"}:
                 cursor_x += w_side_spacing
+                
+            if text_shadow is not None:
+                Basic_Image(
+                    letters_dict[character],
+                    round(cursor_x)+text_shadow[0],
+                    round(cursor_y)+text_shadow[1],
+                    letter_size,
+                    letter_size,
+                    scale_factor,
+                    window,
+                    group,
+                    color=text_shadow[2]
+                )
 
             Basic_Image(
                 letters_dict[character],
@@ -77,6 +90,8 @@ def set_text(text, x, y, letters_dict, letter_size, window, group,
                 group,
                 color=color
             )
+
+
 
             cursor_x += default_amount
 

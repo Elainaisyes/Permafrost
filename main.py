@@ -59,7 +59,7 @@ main_background = Basic_Image(pygame.image.load("assets/images/Window_Background
 spellcard_background = Basic_Image(pygame.image.load("assets/images/Window_Background/Spellcard_Background.png").convert_alpha(), 0, 0, WIDTH-SIDEBAR_WIDTH, HEIGHT, 1, window, alpha=0)
 sidebar = Basic_Image(pygame.image.load("assets/images/Window_Background/Sidebar_Background.png").convert_alpha(), WIDTH-SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT, 1, window)
 
-menu_background = Basic_Image(pygame.image.load("assets/images/Window_Background/Menu_Background.png").convert_alpha(), 0, 0, WIDTH, HEIGHT, 1, window)
+menu_background = Basic_Image(pygame.image.load("assets/images/Window_Background/IMG_7798.jpeg").convert_alpha(), 0, 0, WIDTH, HEIGHT, 1, window)
 cirno_portrait = Basic_Image(pygame.image.load("assets/images/Other/Cirno_Portrait.png").convert_alpha(), (WIDTH-SIDEBAR_WIDTH)//2-350, HEIGHT//2, 400, 400, 1, window)
 
 player = Player(GAME_WIDTH // 2 - 32, HEIGHT // 2, window, GAME_WIDTH)
@@ -79,7 +79,8 @@ power_bar_container = Bar(SIDEBAR_OFFSET_PLACEMENT, 330, 235, 30, (30, 30, 30), 
 power_bar = Bar(SIDEBAR_OFFSET_PLACEMENT + 5, 335, 225, 20, (255, 255, 255), window, bars, is_gradient=True,
                 gradient_start_color=(255,255,255), gradient_end_color=(90,140,255), max_width=225)
 
-set_text("PERMAFROST", 20, 20, *DEFAULT_TEXT_SETUP, menu_text, 1.4, 2, (200,200,255,255))
+set_text("Touhou Eikyuutoudo", 20, 20, *DEFAULT_TEXT_SETUP, menu_text, 1.4, 2.5, (200,200,255,255), text_shadow=(3, 3, (220,220,255, 120)))
+set_text("PERMAFROST", 20, 100, *DEFAULT_TEXT_SETUP, menu_text, 1.4, 2.5, (200,200,255,255), text_shadow=(3, 3, (220,220,255, 120)))
 
 set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255,255,35,255))
 set_text(str(boss.attacks_left), 200, 18, *DEFAULT_TEXT_SETUP, attacks_left_text, 1, 1.5, (255,255,100,255))
@@ -183,6 +184,9 @@ def draw (window, player, boss):
 
 def main(window):
     running = True
+    global paused
+    global menu_open
+
     paused = False
     menu_open = True
 
