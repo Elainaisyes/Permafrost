@@ -6,7 +6,7 @@ from classes.bar import Bar
 from classes.particle import Particle
 from util.return_letters import return_letters
 from util.set_text import set_text, get_line_breaks, get_line_width
-from util.audio_manager import play_sound, play_bgm, pause_bgm, reset_track_position
+from util.audio_manager import play_sound, play_bgm, pause_bgm, resume_bgm
 
 # eliminates lag
 pygame.mixer.pre_init(44100, -16, 2, 512)
@@ -397,16 +397,15 @@ def main(window):
                 elif event.key == pygame.K_p:
                     paused = not paused
                     if paused:
-                        pygame.mixer.music.pause()
-                        pygame.mixer.pause()
+                        pause_bgm()
                     else:
-                        pygame.mixer.music.unpause()
-                        pygame.mixer.unpause()
+                        resume_bgm()
 
                 elif event.key == pygame.K_m and not blackout_overlay.alpha_changing:
                     blackout_overlay.alpha_changing = True
                     player.invulnerable = True
                     player.invulnerability_frames = 60
+                    pause_bgm()
                     blackout_overlay.will_change_screen = True
                     if screen == "menu" or screen == "game":
                         boss.pause_time = 30
