@@ -33,6 +33,9 @@ class Bar(pygame.sprite.Sprite):
         self.default_gradient_start_color = gradient_start_color
         self.default_gradient_end_color = gradient_end_color
 
+        self.offset = 0
+        self.offset_direction = 1
+
     def build_image(self):
         self.image = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
         self.rect = self.image.get_rect(topleft=(self.x_pos,self.y_pos))

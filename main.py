@@ -109,8 +109,6 @@ set_text("Quit", x_pos-x_offset, y_pos+480, *DEFAULT_TEXT_SETUP, menu_options_te
 menu_options["Quit"] = {"x": x_pos-x_offset, "y": y_pos+480, "width": get_line_width(), "Cirno_Portrait": "Shock"}
 
 menu_option_bar = Bar(menu_options["Start"]["x"]-5, menu_options["Start"]["y"]+35, round(menu_options["Start"]["width"]+20), 7, (255,255,255), window, is_gradient=True, gradient_start_color=(200,200,255,255), gradient_end_color=(220,220,255,255), border_radius=100)
-menu_option_bar.offset = 0
-menu_option_bar.offset_direction = 1
 menu_options_keys = [option for option in menu_options.keys()]
 menu_option_bar.particles = pygame.sprite.Group()
 
