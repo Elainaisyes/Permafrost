@@ -2,7 +2,7 @@ import pygame, random, math
 from classes.particle import Particle
 from classes.player_bullet import Player_Bullet
 from util.load_sprite_sheets import load_sprite_sheet_row, load_sprite_sheets
-from util.play_sound import play_sound
+from util.audio_manager import play_sound
 from util.scale_mask import scale_mask
 
 def lerp(start, end, multiplier):

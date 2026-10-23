@@ -3,7 +3,7 @@ from classes.basic_image import Basic_Image
 from classes.particle import Particle
 from classes.boss_bullet import Boss_Bullet
 from util.load_sprite_sheets import load_sprite_sheets, load_sprite_sheet_row
-from util.play_sound import play_sound
+from util.audio_manager import play_sound
 
 def lerp(current, target, multiplier):
     return current + (target - current) * multiplier
@@ -58,6 +58,8 @@ class Boss(pygame.sprite.Sprite):
         self.time_arrived = None
 
         self.player = player
+
+        self.pause_time = 0
 
         self.window = window
         self.aura_sprite = pygame.image.load("assets/images/Aura/Aura.png")
@@ -192,6 +194,8 @@ class Boss(pygame.sprite.Sprite):
         self.right_edge_lift_done = False
         
     def move(self):
+        if self.pause_time > 0:
+            return
         target_x = self.desired_x - self.rect.centerx
         target_y = self.desired_y - self.rect.centery
         distance = math.hypot(target_x, target_y)
@@ -238,6 +242,7 @@ class Boss(pygame.sprite.Sprite):
         return self.time_arrived is not None and pygame.time.get_ticks() - self.time_arrived >= time_passed*1000
 
     def loop(self, player):
+        self.pause_time = max(0, self.pause_time-1)
         self.move()
         for particle in self.particles:
             particle.loop()
@@ -256,12 +261,12 @@ class Boss(pygame.sprite.Sprite):
             self.health = max(0, round(self.health - player.damage))
             play_sound(self.boss_hurt_sfx,0.1)
             
-
-        self.phase_timer_delay += 1
-        if self.phase_timer_delay % self.FPS == 0:
-            self.phase_timer -= 1
-            if -1 < self.phase_timer < 10:
-                play_sound(self.time_running_out_sfx, 0.75)
+        if self.pause_time == 0:
+            self.phase_timer_delay += 1
+            if self.phase_timer_delay % self.FPS == 0:
+                self.phase_timer -= 1
+                if -1 < self.phase_timer < 10:
+                    play_sound(self.time_running_out_sfx, 0.75)
 
         # Need to avoid comparison by None errors
         check_start_health = False
@@ -286,9 +291,10 @@ class Boss(pygame.sprite.Sprite):
 
         self.boss_action(self.player)
 
-        self.phase_time_elapsed += 1
-        for bullet in self.bullets:
-            bullet.loop()
+        if self.pause_time == 0:
+            self.phase_time_elapsed += 1
+            for bullet in self.bullets:
+                bullet.loop()
 
         for leftover in self.leftovers:
             leftover.alpha = lerp(leftover.alpha, 0, 0.05)
@@ -385,6 +391,9 @@ class Boss(pygame.sprite.Sprite):
         self.spellcard_image_delay_tick = 1
 
     def boss_action(self, player):
+        if self.pause_time > 0:
+            return
+        
         # When checking for time elasped, need to make sure only to use increments of 0.05, anything else may not fulfill checking requirements due to floating point decimals
         time_elapsed = self.phase_time_elapsed / 60
 
