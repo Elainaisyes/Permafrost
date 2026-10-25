@@ -48,7 +48,7 @@ menu_options_text = pygame.sprite.Group()
 SIDEBAR_OFFSET_PLACEMENT = GAME_WIDTH + 120
 
 paused = False
-screen = "menu"
+screen = "game"
 
 stars = pygame.sprite.Group()
 red_star = pygame.image.load("assets/images/Star/Red_Star.png").convert_alpha()
@@ -59,9 +59,11 @@ spellcard_background = Basic_Image(pygame.image.load("assets/images/Window_Backg
 sidebar = Basic_Image(pygame.image.load("assets/images/Window_Background/Sidebar_Background.png").convert_alpha(), WIDTH-SIDEBAR_WIDTH, 0, SIDEBAR_WIDTH, HEIGHT, 1, window)
 
 menu_background = Basic_Image(pygame.image.load("assets/images/Window_Background/Menu_Background.jpeg").convert_alpha(), 0, 0, WIDTH, HEIGHT, 1, window)
-cirno_portrait = Basic_Image(pygame.image.load("assets/images/Other/Cirno_Portrait/Normal.png").convert_alpha(), (WIDTH-SIDEBAR_WIDTH)//2-350, HEIGHT//2, 400, 400, 1, window)
+cirno_portrait = Basic_Image(pygame.image.load("assets/images/Other/Cirno_Portrait/Normal.png").convert_alpha(), (WIDTH-SIDEBAR_WIDTH)//2-400, HEIGHT//2-100, 500, 500, 1, window)
+cirno_portrait_particles = pygame.sprite.Group()
 
-frost_aura = Basic_Image(pygame.image.load("assets/images/Aura/Aura.png").convert_alpha(), (WIDTH-SIDEBAR_WIDTH)//2-350, HEIGHT//2, 400, 400, 1, window, color=(200, 200, 255))
+
+frost_aura = Basic_Image(pygame.image.load("assets/images/Aura/Aura.png").convert_alpha(), (WIDTH-SIDEBAR_WIDTH)//2-400, HEIGHT//2-100, 500, 500, 1, window, color=(200, 200, 255))
 frost_aura.image_base = frost_aura.image.copy()
 
 blackout_overlay = Basic_Image(pygame.image.load("assets/images/Window_Background/Sidebar_Background.png").convert_alpha(), 0, 0, WIDTH, HEIGHT, 1, window, color=(0,0,200))
@@ -111,6 +113,10 @@ menu_options["Quit"] = {"x": x_pos-x_offset, "y": y_pos+480, "width": get_line_w
 menu_option_bar = Bar(menu_options["Start"]["x"]-5, menu_options["Start"]["y"]+35, round(menu_options["Start"]["width"]+20), 7, (255,255,255), window, is_gradient=True, gradient_start_color=(200,200,255,255), gradient_end_color=(220,220,255,255), border_radius=100)
 menu_options_keys = [option for option in menu_options.keys()]
 menu_option_bar.particles = pygame.sprite.Group()
+
+menu_option_index = 0
+menu_option = menu_options_keys[menu_option_index]
+menu_option_indicator = Basic_Image(player.bullet_sprites["Projectiles_bullet"][7], menu_options[menu_option]["x"]-30, menu_options[menu_option]["y"]+6, 16, 16, 1.75, window, rotation_angle=90)
 
 set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255,255,35,255))
 set_text(str(boss.attacks_left), 200, 18, *DEFAULT_TEXT_SETUP, attacks_left_text, 1, 1.5, (255,255,100,255))
@@ -215,28 +221,26 @@ def draw (window, player, boss):
     elif screen == "menu":
         menu_background.draw()
         frost_aura.draw()
+        cirno_portrait_particles.draw(window)
         cirno_portrait.draw()
         title_text.draw(window)
         menu_options_text.draw(window)
         menu_option_bar.particles.draw(window)
         menu_option_bar.draw()
+        menu_option_indicator.draw()
 
     blackout_overlay.draw()
     pygame.display.update()
 
 def main(window):
     running = True
-    global paused
-    global screen
+    global paused, screen, menu_options, menu_option, menu_option_index
 
     play_bgm(screen)
     title_color_offset = 0
     title_color_offset_direction = 1
 
     screen_change_ready = False
-
-    menu_option_index = 0
-    menu_option = menu_options_keys[menu_option_index]
 
     clock = pygame.time.Clock()
 
@@ -328,6 +332,12 @@ def main(window):
                 spellcard_background.alpha = lerp(spellcard_background.alpha, 150, 0.1)
                 spellcard_background.image.set_alpha(int(spellcard_background.alpha))
 
+
+        for index, letter in enumerate(title_text):
+            if random.randint(1,3) != 3:
+                continue
+            Particle(random.randint(round(letter.x_pos), round(letter.x_pos+letter.image.get_width())), letter.y_pos+3, random.randint(20,40)/10, -random.randint(45,135), 1, 10, (255,255,255), menu_option_bar.particles)
+
         if last_title_color_offset != title_color_offset:
             title_text.empty()
             set_text("TOUHOU EIKYUUTOUDO", 20, 20+title_color_offset/3, *DEFAULT_TEXT_SETUP, title_text, 1.2, 2.5, (200 + title_color_offset, 200 + title_color_offset, 255, 255), text_shadow=(3, 3, (220 - title_color_offset, 220 - title_color_offset, 255, 120)))
@@ -347,11 +357,21 @@ def main(window):
             frost_aura.rotation_angle -= 1
             frost_aura.rect = frost_aura.image.get_rect(center=cirno_portrait.rect.center)
 
+        Particle(cirno_portrait.rect.centerx+50, cirno_portrait.rect.centery, random.randint(40,60)/10, random.randint(-55,55), 4, 4, (255,255,255), cirno_portrait_particles)
+        Particle(cirno_portrait.rect.centerx-50, cirno_portrait.rect.centery, random.randint(40,60)/10, random.randint(180-55,180+55), 4, 4, (255,255,255), cirno_portrait_particles)
+        Particle(cirno_portrait.rect.centerx, cirno_portrait.rect.centery, random.randint(40,60)/10, random.randint(0,360), 4, 4, (255,255,255), cirno_portrait_particles)
+        for particle in cirno_portrait_particles:
+            particle.loop()
+            particle.speed = max(1, particle.speed-0.035)
+
         Particle(random.randint(round(menu_option_bar.x_pos), round(menu_option_bar.x_pos+menu_option_bar.width)), menu_option_bar.y_pos+3, random.randint(20,40)/10, -random.randint(45,135), 1, 10, (255,255,255), menu_option_bar.particles)
+        if random.randint(1,3) == 3:
+            Particle(menu_option_indicator.rect.centerx + menu_option_bar.offset_direction*5, menu_option_indicator.rect.centery, random.randint(20,40)/10, random.randint(165,195), 1, 10, (255,255,255), menu_option_bar.particles)
         for particle in menu_option_bar.particles:
             particle.loop()
         if last_option_bar_offset != menu_option_bar.offset:
             menu_option_bar.y_pos = menu_options[menu_option]["y"] + 35 + menu_option_bar.offset
+            menu_option_indicator.rect.centerx = menu_options[menu_option]["x"]-30 + menu_option_bar.offset*3
             menu_option_bar.build_image()
             last_option_bar_offset = menu_option_bar.offset
         else:
@@ -431,10 +451,12 @@ def main(window):
                         shadow_alpha = 120 if selected else 50
                         position = menu_options[option]
                         scale = 1.85 if selected else 1.75
+
                         set_text(option, position["x"], position["y"], *DEFAULT_TEXT_SETUP, menu_options_text, 1.35, scale, color, text_shadow=(2,2, (220,220,255,shadow_alpha)))
 
                         if selected:
                             selected_width = get_line_width()
+                            menu_option_indicator.rect.center = position["x"]-30 + menu_option_bar.offset*3, position["y"] + 18
 
                     position = menu_options[menu_option]
                     bar_width = round(selected_width + 20)
