@@ -1,4 +1,4 @@
-import pygame
+import pygame, time
 
 BACKGROUND_MUSIC = {
     "menu": {"path": "assets/audios/bgm/Echos of Distant Days.mp3", "volume": 0.5, "last_position": 0.0},
@@ -14,50 +14,67 @@ def play_sound(sound, volume = 1):
     sound.play()
 
 def get_current_position():
+    global current_track
+
     if not current_track:
         return 0.0
 
-    played_ms = pygame.mixer.music.get_pos()
-    if played_ms == -1: 
-        return 0.0
-    return start_offset + played_ms / 1000
+    track = BACKGROUND_MUSIC[current_track]
 
-def play_bgm(track_key, loops=-1, start = 0.0, fade_ms=2000, resume=True):
-    global current_track, start_offset
+    if not pygame.mixer.music.get_busy():
+        return track["last_position"]
+
+    elapsed = time.monotonic() - track["last_position_time"]
+    return track["last_position"] + elapsed
+
+def play_bgm(track_key, loops=-1, start=0.0, fade_ms=2000, resume=True):
+    global current_track
 
     if current_track == track_key and not pygame.mixer.music.get_busy() and resume:
         pygame.mixer.music.unpause()
         return
 
     if current_track and current_track != track_key:
-        BACKGROUND_MUSIC[current_track]["last_position"] = get_current_position()
+        track = BACKGROUND_MUSIC[current_track]
+        track["last_position"] = get_current_position()
+        track["last_position_time"] = time.monotonic()
 
     track = BACKGROUND_MUSIC[track_key]
     current_track = track_key
 
-    start_pos = track["last_position"] if resume else start
-    start_offset = start_pos
+    if resume:
+        pos = track["last_position"]
+    else:
+        pos = start
+        track["last_position"] = pos
+
+    track["last_position_time"] = time.monotonic()
 
     pygame.mixer.music.load(track["path"])
     pygame.mixer.music.set_volume(track["volume"])
-    pygame.mixer.music.play(loops=loops, start=start_pos, fade_ms=fade_ms)
+    pygame.mixer.music.play(loops=loops, start=pos, fade_ms=fade_ms)
+    print(pos, track["last_position"])
 
 def pause_bgm(fadeout_ms=750):
-    global current_track, start_offset
+    global current_track
     if current_track:
-        pos = get_current_position()+fadeout_ms/1000
-        BACKGROUND_MUSIC[current_track]["last_position"] = pos
-        start_offset = pos
+        track = BACKGROUND_MUSIC[current_track]
+        track["last_position"] = get_current_position()
+        track["last_position_time"] = time.monotonic()
         pygame.mixer.music.fadeout(fadeout_ms)
 
 def resume_bgm():
     global current_track
     if current_track:
         track = BACKGROUND_MUSIC[current_track]
-        pos = start_offset
+        pos = track["last_position"]
+        track["last_position_time"] = time.monotonic()
+
         pygame.mixer.music.load(track["path"])
         pygame.mixer.music.set_volume(track["volume"])
         pygame.mixer.music.play(loops=-1, start=pos, fade_ms=400)
+        print(pos, time.monotonic())
+
 
 def reset_track_position(track_key):
     BACKGROUND_MUSIC[track_key]["last_position"] = 0.0
