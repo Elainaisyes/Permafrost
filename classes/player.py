@@ -220,12 +220,11 @@ class Player(pygame.sprite.Sprite):
                     random.randint(10,40)/10, -self.angle_direction + random.randint(-20,20), 
                     random.randint(10,30)/10 * self.speed / self.BASE_SPEED, random.randint(120,240)/10, 
                     (255,255,255), self.particles)
-            
+
         for particle in self.particles:
             particle.alpha = self.alpha
             particle.loop()
         
-
         for bullet in self.bullets:
             if not bullet.damaging and bullet.create_particles:
                 bullet.image.set_alpha(self.alpha)

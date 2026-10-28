@@ -13,6 +13,8 @@ def play_sound(sound, volume = 1):
     sound.set_volume(volume)
     sound.play()
 
+
+#time.monotonic() used to calculate the amount of milliseconds elapsed since the last time position update.
 def get_current_position():
     global current_track
 
@@ -53,7 +55,6 @@ def play_bgm(track_key, loops=-1, start=0.0, fade_ms=2000, resume=True):
     pygame.mixer.music.load(track["path"])
     pygame.mixer.music.set_volume(track["volume"])
     pygame.mixer.music.play(loops=loops, start=pos, fade_ms=fade_ms)
-    print(pos, track["last_position"])
 
 def pause_bgm(fadeout_ms=750):
     global current_track
@@ -73,7 +74,6 @@ def resume_bgm():
         pygame.mixer.music.load(track["path"])
         pygame.mixer.music.set_volume(track["volume"])
         pygame.mixer.music.play(loops=-1, start=pos, fade_ms=400)
-        print(pos, time.monotonic())
 
 
 def reset_track_position(track_key):
