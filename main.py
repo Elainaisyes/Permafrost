@@ -18,6 +18,7 @@ pygame.mixer.set_num_channels(128)
 
 BG_COLOR = (0, 0, 0)
 WIDTH, HEIGHT = 1000, 750
+GAME_ASPECT = WIDTH / HEIGHT
 SIDEBAR_WIDTH = WIDTH * 0.4
 GAME_WIDTH = WIDTH-SIDEBAR_WIDTH
 GAME_NAME = "Permafrost"
@@ -182,7 +183,7 @@ def build_menu_options(specs, start_x, start_y, group, starting_label, x_factor_
         x = start_x + x_factor * x_factor_multiplier
         y = start_y + y_offset
         color = primary_color if label == starting_label else secondary_color
-        text_shadow=(2, 2, (220, 220, 255, 120 if label == "Start" else 50))
+        text_shadow=(2, 2, (*primary_color, 120 if label == "Start" else 50))
 
         set_text(label, x, y, *DEFAULT_TEXT_SETUP, group, spacing, scale, color=color, text_shadow=text_shadow)
         options[label] = {
@@ -200,8 +201,8 @@ menu_specs = [
     ("Spell Practice", 80, -2/3, "Confident", 1.35, 1.75),
     ("Score", 160, -1/3, "Startled", 1.35, 1.75),
     ("Music Room", 240, 0, "Happy", 1.35, 1.75),
-    ("Options", 320, -1/3, "Normal", 1.35, 1.75),
-    ("Credits", 400, -2/3, "Normal", 1.35, 1.75),
+    ("Options", 320, -1/3, "Sigh", 1.35, 1.75),
+    ("Credits", 400, -2/3, "Sigh", 1.35, 1.75),
     ("Quit", 480, -1, "Shock", 1.35, 1.75),
 ]
 
@@ -219,49 +220,65 @@ for letter in pause_options_text:
     letter.alpha = 0
     letter.image.set_alpha(0)
 
-menu_option_bar = Bar(menu_options["Start"]["x"]-5, menu_options["Start"]["y"]+35, round(menu_options["Start"]["width"]+20), 7, (255,255,255), window, is_gradient=True, gradient_start_color=(200,200,255,255), gradient_end_color=(220,220,255,255), border_radius=100)
+option_bar = Bar(menu_options["Start"]["x"]-5, menu_options["Start"]["y"]+35, round(menu_options["Start"]["width"]+20), 7, (255,255,255), window, is_gradient=True, gradient_start_color=(200,200,255,255), gradient_end_color=(220,220,255,255), border_radius=100)
 menu_options_keys = [option for option in menu_options.keys()]
-menu_option_bar.particles = pygame.sprite.Group()
+option_bar.particles = pygame.sprite.Group()
+option_bar.alpha = 255
 
 menu_option_index = 0
 menu_option = menu_options_keys[menu_option_index]
-menu_option_indicator = Basic_Image(player.bullet_sprites["Projectiles_bullet"][7], menu_options[menu_option]["x"]-30, menu_options[menu_option]["y"]+6, 16, 16, 1.75, window, rotation_angle=90)
 
-def set_menu_option(index):
-    global menu_option_index, menu_option
+pause_option_index = 0
+pause_option = pause_options_keys[pause_option_index]
 
-    menu_option_index = max(0, min(index, len(menu_options_keys) - 1))
-    menu_option = menu_options_keys[menu_option_index]
+option_indicator = Basic_Image(player.bullet_sprites["Projectiles_bullet"][7], menu_options[menu_option]["x"]-30, menu_options[menu_option]["y"]+6, 16, 16, 1.75, window, rotation_angle=90)
 
-    menu_option_bar.x_pos = menu_options[menu_option]["x"] - 5
-    menu_option_bar.y_pos = menu_options[menu_option]["y"] + 35
-    menu_option_bar.width = menu_options[menu_option]["width"] + 20
-    menu_option_bar.max_width = round(menu_options[menu_option]["width"] + 20)
-    menu_option_bar.build_image()
+def set_option(index, options, options_keys, group, colors, state_name):
+    global menu_option, menu_option_index, pause_option, pause_option_index
 
-    menu_options_text.empty()
-    for i, option in enumerate(menu_options_keys):
-        selected = i == menu_option_index
-        alpha = 255 if selected else 180
-        color = (220, 220, 255, alpha) if selected else (200, 200, 255, alpha)
+    selected_index = max(0, min(index, len(options_keys) - 1))
+    selected_option = options_keys[selected_index]
+
+    active_option = "NOT EMPTY"
+
+    if state_name == "menu":
+        menu_option_index = selected_index
+        menu_option = selected_option
+    elif paused:
+        pause_option_index = selected_index
+        pause_option = selected_option
+        
+    option_bar.y_pos = options[selected_option]["y"] + 35
+    option_bar.x_pos = options[selected_option]["x"] - 5
+    option_bar.width = options[selected_option]["width"] + 20
+    option_bar.max_width = round(options[selected_option]["width"] + 20)
+    option_bar.gradient_start_color = colors["secondary"]
+    option_bar.gradient_end_color = (*colors["secondary"][:3], 255)
+    option_bar.build_image()
+
+    group.empty()
+    for i, option in enumerate(options_keys):
+        selected = i == selected_index
+        position = options[option]
+        color = colors["primary"] if selected else colors["secondary"]
         shadow_alpha = 120 if selected else 50
-        position = menu_options[option]
         scale = 1.85 if selected else 1.75
 
         set_text(
             option, position["x"], position["y"], *DEFAULT_TEXT_SETUP,
-            menu_options_text, 1.35, scale, color,
-            text_shadow=(2, 2, (220, 220, 255, shadow_alpha))
+            group, 1.35, scale, color,
+            text_shadow=(2, 2, (*colors["primary"], shadow_alpha))
         )
 
         if selected:
-            menu_option_indicator.rect.center = (
-                position["x"] - 30 + menu_option_bar.offset * 3,
+            option_indicator.rect.center = (
+                position["x"] - 30 + option_bar.offset * 3,
                 position["y"] + 18
             )
 
-    update_cirno_portrait(menu_options[menu_option])
+    update_cirno_portrait(options[selected_option])
     play_sound(pygame.mixer.Sound("assets/audios/sfx/blip.mp3"), 0.25)
+    return selected_index
 
 def change_screen_setup():
     blackout_overlay.alpha_changing = True
@@ -279,12 +296,22 @@ def change_screen_setup():
 
 def set_mouse_rects(event, options, options_keys):
     mouse_x, mouse_y = event.pos
+    largest_width = 0
+    for option in options_keys:
+        if options[option]["width"] > largest_width:
+            largest_width = options[option]["width"]
+            
     for index, option in enumerate(options_keys):
         pos = options[option]
-        rect = pygame.Rect(pos["x"] - 40, pos["y"] - 10, options["Spell Practice"]["width"] + 80, 60)
+        rect = pygame.Rect(pos["x"] - 40, pos["y"] - 10, largest_width + 80, 60)
         if rect.collidepoint(mouse_x, mouse_y):
             return index
     return None
+
+def mouse_selection_change(event, options, options_keys, index, group, colors, state_name):
+    selected_index = set_mouse_rects(event, options, options_keys)
+    if selected_index is not None and selected_index != index:
+        return set_option(selected_index, options, options_keys, group, colors, state_name)
 
 def draw (window, player, boss):
     if screen == "game":
@@ -316,22 +343,27 @@ def draw (window, player, boss):
         cirno_portrait.draw()
         title_text.draw(window)
         menu_options_text.draw(window)
-        menu_option_bar.particles.draw(window)
-        menu_option_bar.draw()
-        menu_option_indicator.draw()
+
+    if screen == "game" or screen == "menu" or screen == "gameover":
+        option_bar.particles.draw(window)
+        option_bar.draw()
+        option_indicator.draw()
 
     blackout_overlay.draw()
     pygame.display.update()
 
 def main(window):
     running = True
-    global paused, screen, menu_options, menu_option, menu_option_index
+    fullscreen = False
+    global paused, screen, menu_option_index, pause_option_index
 
     play_bgm(screen)
     title_color_offset = 0
     title_color_offset_direction = 1
 
     screen_change_ready = False
+
+    active_options = "menu"
 
     clock = pygame.time.Clock()
 
@@ -422,11 +454,11 @@ def main(window):
                 spellcard_background.alpha = lerp(spellcard_background.alpha, 150, 0.1)
                 spellcard_background.image.set_alpha(int(spellcard_background.alpha))
 
-
-        for letter in title_text:
-            if random.randint(1,3) != 3:
-                continue
-            Particle(random.randint(round(letter.x_pos), round(letter.x_pos+letter.image.get_width())), letter.y_pos+3, random.randint(20,40)/10, -random.randint(45,135), 1, 10, (255,255,255), menu_option_bar.particles)
+        if screen == "menu":
+            for letter in title_text:
+                if random.randint(1,3) != 3:
+                    continue
+                Particle(random.randint(round(letter.x_pos), round(letter.x_pos+letter.image.get_width())), letter.y_pos+3, random.randint(20,40)/10, -random.randint(45,135), 1, 10, (255,255,255), option_bar.particles)
 
         if last_title_color_offset != title_color_offset:
             title_text.empty()
@@ -454,25 +486,41 @@ def main(window):
             particle.loop()
             particle.speed = max(1, particle.speed-0.035)
 
-        Particle(random.randint(round(menu_option_bar.x_pos), round(menu_option_bar.x_pos+menu_option_bar.width)), menu_option_bar.y_pos+3, random.randint(20,40)/10, -random.randint(45,135), 1, 10, (255,255,255), menu_option_bar.particles)
+        Particle(random.randint(round(option_bar.x_pos), round(option_bar.x_pos+option_bar.width)), option_bar.y_pos+3, random.randint(20,40)/10, -random.randint(45,135), 1, 10, (255,255,255), option_bar.particles)
         if random.randint(1,3) == 3:
-            Particle(menu_option_indicator.rect.centerx + menu_option_bar.offset_direction*5, menu_option_indicator.rect.centery, random.randint(20,40)/10, random.randint(165,195), 1, 10, (255,255,255), menu_option_bar.particles)
-        for particle in menu_option_bar.particles:
+            Particle(option_indicator.rect.centerx + option_bar.offset_direction*5, option_indicator.rect.centery, random.randint(20,40)/10, random.randint(165,195), 1, 10, (255,255,255), option_bar.particles)
+        for particle in option_bar.particles:
             particle.loop()
-        menu_option_bar.offset += menu_option_bar.offset_direction * 0.1
+        option_bar.offset += option_bar.offset_direction * 0.1
 
-        if menu_option_bar.offset >= 5:
-            menu_option_bar.offset = 5
-            menu_option_bar.offset_direction = -1
-        elif menu_option_bar.offset <= 0:
-            menu_option_bar.offset = 0
-            menu_option_bar.offset_direction = 1
+        if option_bar.offset >= 5:
+            option_bar.offset = 5
+            option_bar.offset_direction = -1
+        elif option_bar.offset <= 0:
+            option_bar.offset = 0
+            option_bar.offset_direction = 1
 
-        menu_option_bar.y_pos = menu_options[menu_option]["y"] + 35 + menu_option_bar.offset
-        menu_option_indicator.rect.centerx = menu_options[menu_option]["x"] - 30 + menu_option_bar.offset * 3
-        menu_option_bar.build_image()
+        if screen == "menu":
+            active_options = menu_options
+            active_option = menu_option
+        elif paused and screen == "game":
+            active_options = pause_options
+            active_option = pause_option
+        else:
+            active_options = None
+            active_option = None
 
+        if active_options is not None:
+            option_bar.y_pos = active_options[active_option]["y"] + 35 + option_bar.offset
+            option_indicator.rect.centerx = active_options[active_option]["x"] - 30 + option_bar.offset * 3
 
+        option_bar.build_image()
+        target_bar_alpha = 255 if screen == "menu" else (0 if not paused else 255)
+        option_bar.alpha = lerp(option_bar.alpha, target_bar_alpha, 0.2)
+        option_bar.image.set_alpha(round(option_bar.alpha))
+        option_indicator.image.set_alpha(round(option_bar.alpha))
+        for particle in option_bar.particles:
+            particle.image.set_alpha(round(option_bar.alpha))
         
         if blackout_overlay.alpha_changing:
             screen_change_ready = False
@@ -499,7 +547,14 @@ def main(window):
 
         if screen_change_ready:
             play_bgm("game" if screen == "menu" else "menu")
+
+            if screen == "menu":
+                set_option(menu_option_index, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
+            elif paused and screen == "game":
+                set_option(pause_option_index, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")
+
             screen = "game" if screen == "menu" else "menu"
+
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -508,21 +563,35 @@ def main(window):
                 if event.key == pygame.K_ESCAPE:
                     running = False
 
+                elif event.key == pygame.K_f:
+                    fullscreen = not fullscreen
+                    if fullscreen:
+                        window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+                    else:
+                        window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
                 elif event.key == pygame.K_p:
                     paused = not paused
                     if paused:
                         pause_bgm()
+                        set_option(pause_option_index, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")
                     else:
                         resume_bgm()
+                        set_option(menu_option_index, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
 
                 elif event.key == pygame.K_m and not blackout_overlay.alpha_changing:
                     change_screen_setup()
 
-                elif event.key in (pygame.K_UP, pygame.K_DOWN) and screen == "menu":
-                    if event.key == pygame.K_UP and menu_option_index > 0:
-                        set_menu_option(menu_option_index - 1)
-                    elif event.key == pygame.K_DOWN and menu_option_index < len(menu_options_keys)-1:
-                        set_menu_option(menu_option_index + 1)
+                elif event.key in (pygame.K_UP, pygame.K_DOWN) and (screen == "menu" or paused):
+                    if event.key == pygame.K_UP:
+                        if menu_option_index > 0 and screen == "menu":
+                            menu_option_index = set_option(menu_option_index - 1, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
+                        elif pause_option_index > 0 and paused:
+                            pause_option_index = set_option(pause_option_index - 1, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")                            
+                    elif event.key == pygame.K_DOWN:
+                        if menu_option_index < len(menu_options_keys)-1 and screen == "menu":
+                            menu_option_index = set_option(menu_option_index + 1, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
+                        elif pause_option_index < len(pause_options_keys)-1 and paused:
+                            pause_option_index = set_option(pause_option_index + 1, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")                            
 
                 elif event.key in (pygame.K_SPACE, pygame.K_RETURN) and not blackout_overlay.alpha_changing and screen == "menu":
                     if menu_option == "Start":
@@ -531,13 +600,14 @@ def main(window):
                             boss.pause_time = 30
                     if menu_option == "Quit":
                         running = False
+            if event.type == pygame.MOUSEMOTION and blackout_overlay.alpha < 50:
+                if screen == "menu":
+                    mouse_selection_change(event, menu_options, menu_options_keys, menu_option_index, menu_options_text, menu_option_colors, "menu")
+                elif paused:
+                    mouse_selection_change(event, pause_options, pause_options_keys, pause_option_index, pause_options_text, pause_option_colors, "pause")
 
-            if event.type == pygame.MOUSEMOTION and screen == "menu":
-                selected_index = set_mouse_rects(event, menu_options, menu_options_keys)
-                if selected_index is not None and selected_index != menu_option_index:
-                    set_menu_option(selected_index)
                     
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not blackout_overlay.alpha_changing:
                 if screen == "menu":
                     if menu_option == "Start":
                         change_screen_setup()
