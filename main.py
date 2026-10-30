@@ -50,7 +50,11 @@ pause_options_text = pygame.sprite.Group()
 SIDEBAR_OFFSET_PLACEMENT = GAME_WIDTH + 120
 
 paused = False
-screen = "game"
+pause_transition_pending = False
+pause_transition_target = None
+
+screen = "menu"
+alternate_music = True
 
 stars = pygame.sprite.Group()
 red_star = pygame.image.load("assets/images/Star/Red_Star.png").convert_alpha()
@@ -239,15 +243,13 @@ def set_option(index, options, options_keys, group, colors, state_name):
     selected_index = max(0, min(index, len(options_keys) - 1))
     selected_option = options_keys[selected_index]
 
-    active_option = "NOT EMPTY"
-
     if state_name == "menu":
         menu_option_index = selected_index
         menu_option = selected_option
-    elif paused:
+    elif state_name == "pause":
         pause_option_index = selected_index
         pause_option = selected_option
-        
+
     option_bar.y_pos = options[selected_option]["y"] + 35
     option_bar.x_pos = options[selected_option]["x"] - 5
     option_bar.width = options[selected_option]["width"] + 20
@@ -313,6 +315,34 @@ def mouse_selection_change(event, options, options_keys, index, group, colors, s
     if selected_index is not None and selected_index != index:
         return set_option(selected_index, options, options_keys, group, colors, state_name)
 
+def unpause_game():
+    global pause_transition_pending, pause_transition_target, paused
+
+    if pause_transition_pending:
+        return
+
+    paused = not paused
+    pause_transition_pending = True
+    pause_transition_target = "pause" if paused else "menu"
+
+    if paused:
+        pause_bgm()
+    else:
+        resume_bgm()
+
+def execute_options():
+    global pause_transition_pending, pause_transition_target, running
+    if (menu_option == "Start" and screen == "menu") or (pause_option == "Back to Menu" and paused):
+        change_screen_setup()
+        if screen == "menu" or screen == "game":
+            boss.pause_time = 30
+
+    if pause_option == "Continue" and paused: 
+        unpause_game()
+
+    if menu_option == "Quit" and screen == "menu":
+        running = False
+
 def draw (window, player, boss):
     if screen == "game":
         main_background.draw()
@@ -355,9 +385,9 @@ def draw (window, player, boss):
 def main(window):
     running = True
     fullscreen = False
-    global paused, screen, menu_option_index, pause_option_index
+    global paused, screen, menu_option_index, pause_option_index, pause_transition_pending, pause_transition_target, alternate_music
 
-    play_bgm(screen)
+    play_bgm("game_alternate" if screen=="game" and alternate_music else screen)
     title_color_offset = 0
     title_color_offset_direction = 1
 
@@ -500,7 +530,21 @@ def main(window):
             option_bar.offset = 0
             option_bar.offset_direction = 1
 
-        if screen == "menu":
+        if pause_transition_pending and pause_transition_target == "menu":
+            if option_bar.alpha <= 0:
+                active_options = menu_options
+                active_option = menu_option
+                set_option(menu_option_index, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
+                pause_transition_pending = False
+            else:
+                active_options = pause_options
+                active_option = pause_option
+
+        elif pause_transition_pending and pause_transition_target == "pause":
+                set_option(pause_option_index, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")
+                pause_transition_pending = False
+
+        elif screen == "menu":
             active_options = menu_options
             active_option = menu_option
         elif paused and screen == "game":
@@ -510,9 +554,26 @@ def main(window):
             active_options = None
             active_option = None
 
+        if pause_transition_pending:
+            target_alpha = 120 if pause_transition_target == "pause" else 0
+            if abs(pause_darken_overlay.alpha - target_alpha) < 1:
+                if pause_transition_target == "pause":
+                    set_option(pause_option_index, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")
+                elif pause_transition_target == "menu":
+                    set_option(menu_option_index, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
+                pause_transition_pending = False
+
         if active_options is not None:
+            option_bar.x_pos = active_options[active_option]["x"] - 5
+            option_bar.width = active_options[active_option]["width"] + 20
+            option_bar.max_width = round(active_options[active_option]["width"] + 20)
             option_bar.y_pos = active_options[active_option]["y"] + 35 + option_bar.offset
             option_indicator.rect.centerx = active_options[active_option]["x"] - 30 + option_bar.offset * 3
+            option_indicator.rect.centery = active_options[active_option]["y"] + 18
+            # Update for gameover
+            colors = menu_option_colors if screen == "menu" else (pause_option_colors if paused and screen == "game" else pause_option_colors)
+            option_bar.gradient_start_color = colors["secondary"]
+            option_bar.gradient_end_color = (*colors["secondary"][:3], 255)
 
         option_bar.build_image()
         target_bar_alpha = 255 if screen == "menu" else (0 if not paused else 255)
@@ -545,15 +606,18 @@ def main(window):
                 letter.alpha = lerp(letter.alpha, 255 if paused else 0, 0.2)
                 letter.image.set_alpha(letter.alpha)
 
+
+
         if screen_change_ready:
-            play_bgm("game" if screen == "menu" else "menu")
 
             if screen == "menu":
                 set_option(menu_option_index, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
             elif paused and screen == "game":
                 set_option(pause_option_index, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")
 
+            paused = False
             screen = "game" if screen == "menu" else "menu"
+            play_bgm("game_alternate" if screen=="game" and alternate_music else screen)
 
 
         for event in pygame.event.get():
@@ -569,14 +633,8 @@ def main(window):
                         window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
                     else:
                         window = pygame.display.set_mode((WIDTH, HEIGHT), pygame.SCALED)
-                elif event.key == pygame.K_p:
-                    paused = not paused
-                    if paused:
-                        pause_bgm()
-                        set_option(pause_option_index, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")
-                    else:
-                        resume_bgm()
-                        set_option(menu_option_index, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
+                elif event.key == pygame.K_p and screen == "game" and (pause_darken_overlay.alpha < 1 or pause_darken_overlay.alpha > 119):
+                    unpause_game()
 
                 elif event.key == pygame.K_m and not blackout_overlay.alpha_changing:
                     change_screen_setup()
@@ -593,26 +651,26 @@ def main(window):
                         elif pause_option_index < len(pause_options_keys)-1 and paused:
                             pause_option_index = set_option(pause_option_index + 1, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")                            
 
-                elif event.key in (pygame.K_SPACE, pygame.K_RETURN) and not blackout_overlay.alpha_changing and screen == "menu":
-                    if menu_option == "Start":
+                elif event.key in (pygame.K_SPACE, pygame.K_RETURN) and not blackout_overlay.alpha_changing and (screen == "menu" or paused or screen == "gameover"):
+                    if (menu_option == "Start" and screen == "menu") or (pause_option == "Back to Menu" and paused):
                         change_screen_setup()
                         if screen == "menu" or screen == "game":
                             boss.pause_time = 30
-                    if menu_option == "Quit":
+
+                    if pause_option == "Continue" and paused: 
+                        unpause_game()
+
+                    if menu_option == "Quit" and screen == "menu":
                         running = False
-            if event.type == pygame.MOUSEMOTION and blackout_overlay.alpha < 50:
+            if event.type == pygame.MOUSEMOTION and blackout_overlay.alpha < 50 and not pause_transition_pending:
                 if screen == "menu":
                     mouse_selection_change(event, menu_options, menu_options_keys, menu_option_index, menu_options_text, menu_option_colors, "menu")
                 elif paused:
                     mouse_selection_change(event, pause_options, pause_options_keys, pause_option_index, pause_options_text, pause_option_colors, "pause")
 
                     
-            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not blackout_overlay.alpha_changing:
-                if screen == "menu":
-                    if menu_option == "Start":
-                        change_screen_setup()
-                    elif menu_option == "Quit":
-                        running = False
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1 and not blackout_overlay.alpha_changing and not pause_transition_pending:
+                execute_options()
 
 
                 

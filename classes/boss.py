@@ -84,11 +84,14 @@ class Boss(pygame.sprite.Sprite):
             Phase(5000, 30, start_spellcard_health=3000),
             Phase(None, 60, is_spellcard=True, name='Taboo "Maze of Love"'),
 
-            Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Starbow Break"'),
+            Phase(6000, 30, start_spellcard_health=4000),
+            Phase(None, 60, is_spellcard=True, name='Forbidden Barrage "Starbow Break"'),
 
-            Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Catadioptric"'),
+            Phase(6000, 30, start_spellcard_health=4000),
+            Phase(None, 60, is_spellcard=True, name='Forbidden Barrage "Catadioptric"'),
 
-            Phase(4000, 60, is_spellcard=True, name='Forbidden Barrage "Counter Clock"'),
+            Phase(6000, 30, start_spellcard_health=4000),
+            Phase(None, 60, is_spellcard=True, name='Forbidden Barrage "Counter Clock"'),
 
             Phase(99999999, 60, is_spellcard=True, name='Secret Barrage "And Then Will there be None?"'),
 
@@ -630,7 +633,7 @@ class Boss(pygame.sprite.Sprite):
             if self.phase_time_elapsed % 90 == 0:
                 self.set_desired_position(random.randint(100,500), random.randint(75,150))
 
-        if self.phase_index == 11:
+        if self.phase_index == 12:
             # Basic attack before Catadiotropic
             if time_elapsed >= 1:
                 self.spiral_attack(0.5, 32, 2.5, {0, 3, 6}, True, -0.5, 2/3, 1, 6)

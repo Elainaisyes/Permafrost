@@ -3,7 +3,8 @@ import pygame, time
 BACKGROUND_MUSIC = {
     "menu": {"path": "assets/audios/bgm/Echos of Distant Days.mp3", "volume": 0.5, "last_position": 0.0},
     "game": {"path": "assets/audios/bgm/UN-Owen-Was-Her.mp3", "volume": 0.75, "last_position": 0.0},
-    "gameover": {"path": "assets/audios/bgm/sins 13.mp3", "volume": 1.25, "last_position": 0.0}
+    "game_alternate": {"path": "assets/audios/bgm/Septette for the Dead Princess.mp3", "volume": 1, "last_position": 0.0},
+    "gameover": {"path": "assets/audios/bgm/sins 13.mp3", "volume": 1, "last_position": 0.0}
 }
 
 current_track = None
