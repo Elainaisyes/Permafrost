@@ -101,6 +101,7 @@ class Boss(pygame.sprite.Sprite):
         self.attacks_left = 9
         self.phase_health = 0
         self.health = self.phase_health
+        self.health_changing = False
         self.phase_timer = 0
         self.phase_timer_delay = 0
         self.phase_index = 0
@@ -276,7 +277,7 @@ class Boss(pygame.sprite.Sprite):
         if self.phase.start_spellcard_health is not None:
             check_start_health = self.health <= self.phase.start_spellcard_health
             
-        if self.phase_timer < 0 or self.health <= 0 or check_start_health:
+        if (self.phase_timer < 0 or self.health <= 0 or check_start_health) and not self.health_changing:
             if self.health >= 0 and self.phase.is_spellcard:
                 play_sound(pygame.mixer.Sound('assets/audios/sfx/cat00.wav'))
 
@@ -321,6 +322,21 @@ class Boss(pygame.sprite.Sprite):
                         player.graze += 1
                         play_sound(player.graze_sfx, 0.25)
                         bullet.graze_detected = True
+
+        if self.health_changing:
+            if self.phase.is_spellcard:
+                target_health = self.phases[self.phase_index-1].start_spellcard_health
+            else:
+                target_health = self.phase_health
+
+            if target_health is None:
+                self.health_changing = False
+            else:
+                self.health = lerp(self.health, target_health, 0.05)
+                if abs(self.health - target_health) < 60:
+                    self.health = target_health
+                    self.health_changing = False
+
 
     def create_leftovers(self):
         for bullet in self.bullets: 
@@ -373,6 +389,7 @@ class Boss(pygame.sprite.Sprite):
     def start_phase(self):
         self.phase = self.phases[self.phase_index]
         self.phase_time_elapsed = 0
+        self.health_changing = True
         
         if self.phase.is_spellcard:
             self.in_spellcard = True
@@ -383,8 +400,6 @@ class Boss(pygame.sprite.Sprite):
 
         if self.phase.health is not None:
             self.phase_health = self.phase.health
-            self.health = self.phase.health
-        
 
         self.phase_timer = self.phase.timer
         self.phase_timer_delay = 0
@@ -420,7 +435,7 @@ class Boss(pygame.sprite.Sprite):
             fog.alpha -= 15
             fog.image.set_alpha(fog.alpha)
             if fog.alpha <= 50:
-                if fog.type == "bullet_fog" and not fog.bullet_spawned:
+                if fog.type == "bullet_fog" and not fog.bullet_spawned and time_elapsed >= 1:
                     for i in range(0,2):
                         bullet = Boss_Bullet(fog.rect.centerx, fog.rect.centery, self.bullet_sprites["Projectiles_bullet"][fog.color_index], self.window, fog.bullet_speed, fog.bullet_angle, 255, 1.25, "beam", fog.bullet_speed*1.25, self.bullets)
                         bullet.rect.center = fog.rect.center

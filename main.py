@@ -46,9 +46,11 @@ spellcard_text = pygame.sprite.Group()
 title_text = pygame.sprite.Group()
 menu_options_text = pygame.sprite.Group()
 pause_options_text = pygame.sprite.Group()
+gameover_options_text = pygame.sprite.Group()
 
 SIDEBAR_OFFSET_PLACEMENT = GAME_WIDTH + 120
 
+running = True
 paused = False
 pause_transition_pending = False
 pause_transition_target = None
@@ -68,9 +70,10 @@ menu_background = Basic_Image(pygame.image.load("assets/images/Window_Background
 cirno_portrait = Basic_Image(pygame.image.load("assets/images/Other/Cirno_Portrait/Normal.png").convert_alpha(), (WIDTH-SIDEBAR_WIDTH)//2-400, HEIGHT//2-100, 500, 500, 1, window)
 cirno_portrait_particles = pygame.sprite.Group()
 
-
 frost_aura = Basic_Image(pygame.image.load("assets/images/Aura/Aura.png").convert_alpha(), (WIDTH-SIDEBAR_WIDTH)//2-400, HEIGHT//2-100, 500, 500, 1, window, color=(200, 200, 255))
 frost_aura.image_base = frost_aura.image.copy()
+
+gameover_background = Basic_Image(pygame.image.load("assets/images/Window_Background/Gameover_Background.png").convert_alpha(), 0, 0, WIDTH, HEIGHT, 1, window)
 
 blackout_overlay = Basic_Image(pygame.image.load("assets/images/Window_Background/Sidebar_Background.png").convert_alpha(), 0, 0, WIDTH, HEIGHT, 1, window, color=(0,0,200))
 blackout_overlay.alpha_direction = 1
@@ -99,7 +102,7 @@ power_bar = Bar(SIDEBAR_OFFSET_PLACEMENT + 5, 335, 225, 20, (255, 255, 255), win
 set_text("TOUHOU EIKYUUTOUDO", 20, 20, *DEFAULT_TEXT_SETUP, title_text, 1.2, 2.5, (200,200,255,255), text_shadow=(3, 3, (220,220,255, 120)))
 set_text("PERMAFROST", 20, 100, *DEFAULT_TEXT_SETUP, title_text, 1.35, 2.5, (200,200,255,255), text_shadow=(3, 3, (220,220,255, 120)))
 
-set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, letters, 1.5, 1, (255,255,35,255))
+set_text("FLANDRE SCARLET", 20, 20, *DEFAULT_TEXT_SETUP, letters, 1.75, 1, (255,255,35,255))
 set_text(str(boss.attacks_left), 200, 18, *DEFAULT_TEXT_SETUP, attacks_left_text, 1, 1.5, (255,255,100,255))
 set_text(str(boss.phase_timer), GAME_WIDTH - 50, 18, *DEFAULT_TEXT_SETUP, phase_timer_text, 1, 1.5, (190,220,255,255))
 
@@ -172,8 +175,8 @@ def set_spellcard_image(scale_factor, alpha):
     boss_spellcard_image.image.set_alpha(int(boss_spellcard_image.alpha))
     boss_spellcard_image.rect = boss_spellcard_image.image.get_rect(center=boss_spellcard_image.rect.center)
 
-def update_cirno_portrait(option):
-    portrait = pygame.image.load(f"assets/images/Other/Cirno_Portrait/{option['Cirno_Portrait']}.png").convert_alpha()
+def update_cirno_portrait(src):
+    portrait = pygame.image.load(f"assets/images/Other/Cirno_Portrait/{src}.png").convert_alpha()
     portrait_center = cirno_portrait.rect.center
     cirno_portrait.image = pygame.transform.smoothscale(portrait, cirno_portrait.rect.size)
     cirno_portrait.rect = cirno_portrait.image.get_rect(center=portrait_center)
@@ -224,6 +227,16 @@ for letter in pause_options_text:
     letter.alpha = 0
     letter.image.set_alpha(0)
 
+gameover_specs = [
+    ("Restart", 0, -1/3, "Hurt", 1.35, 1.85),
+    ("Score", 100, 0, "Hurt", 1.35, 1.75),
+    ("Options", 200, 0, "Hurt", 1.35, 1.75),
+    ("Back to Menu", 300, -1/3, "Hurt", 1.35, 1.75),
+]
+
+set_text("GAME OVER", 315, 80, *DEFAULT_TEXT_SETUP, gameover_options_text, 1, 2.5, (255,88,88), text_shadow=(3, 3, (255,88,88, 120)))
+gameover_options, gameover_options_keys, gameover_option_colors = build_menu_options(gameover_specs, 650, 220, gameover_options_text, "Restart", primary_color=(200,255,200), secondary_color=(200,255,200,140))
+
 option_bar = Bar(menu_options["Start"]["x"]-5, menu_options["Start"]["y"]+35, round(menu_options["Start"]["width"]+20), 7, (255,255,255), window, is_gradient=True, gradient_start_color=(200,200,255,255), gradient_end_color=(220,220,255,255), border_radius=100)
 menu_options_keys = [option for option in menu_options.keys()]
 option_bar.particles = pygame.sprite.Group()
@@ -235,10 +248,13 @@ menu_option = menu_options_keys[menu_option_index]
 pause_option_index = 0
 pause_option = pause_options_keys[pause_option_index]
 
+gameover_option_index = 0
+gameover_option = gameover_options_keys[gameover_option_index]
+
 option_indicator = Basic_Image(player.bullet_sprites["Projectiles_bullet"][7], menu_options[menu_option]["x"]-30, menu_options[menu_option]["y"]+6, 16, 16, 1.75, window, rotation_angle=90)
 
 def set_option(index, options, options_keys, group, colors, state_name):
-    global menu_option, menu_option_index, pause_option, pause_option_index
+    global menu_option, menu_option_index, pause_option, pause_option_index, gameover_option, gameover_option_index
 
     selected_index = max(0, min(index, len(options_keys) - 1))
     selected_option = options_keys[selected_index]
@@ -249,6 +265,9 @@ def set_option(index, options, options_keys, group, colors, state_name):
     elif state_name == "pause":
         pause_option_index = selected_index
         pause_option = selected_option
+    elif state_name == "gameover":
+        gameover_option_index = selected_index
+        gameover_option = selected_option
 
     option_bar.y_pos = options[selected_option]["y"] + 35
     option_bar.x_pos = options[selected_option]["x"] - 5
@@ -278,7 +297,7 @@ def set_option(index, options, options_keys, group, colors, state_name):
                 position["y"] + 18
             )
 
-    update_cirno_portrait(options[selected_option])
+    update_cirno_portrait(options[selected_option]["Cirno_Portrait"])
     play_sound(pygame.mixer.Sound("assets/audios/sfx/blip.mp3"), 0.25)
     return selected_index
 
@@ -292,9 +311,9 @@ def change_screen_setup():
     if screen == "menu" or screen == "game":
         boss.pause_time = 30
     if screen == "menu":
-        update_cirno_portrait(menu_options["Music Room"])
+        update_cirno_portrait(menu_options["Music Room"]["Cirno_Portrait"])
     else:
-        update_cirno_portrait(menu_options[menu_option])
+        update_cirno_portrait(menu_options[menu_option]["Cirno_Portrait"])
 
 def set_mouse_rects(event, options, options_keys):
     mouse_x, mouse_y = event.pos
@@ -368,13 +387,17 @@ def draw (window, player, boss):
         pause_options_text.draw(window)
     elif screen == "menu":
         menu_background.draw()
-        frost_aura.draw()
-        cirno_portrait_particles.draw(window)
-        cirno_portrait.draw()
         title_text.draw(window)
         menu_options_text.draw(window)
+    elif screen == "gameover":
+        gameover_background.draw()
+        gameover_options_text.draw(window)
 
     if screen == "game" or screen == "menu" or screen == "gameover":
+        if screen != "game":
+            frost_aura.draw()
+            cirno_portrait_particles.draw(window)
+            cirno_portrait.draw()
         option_bar.particles.draw(window)
         option_bar.draw()
         option_indicator.draw()
@@ -383,8 +406,8 @@ def draw (window, player, boss):
     pygame.display.update()
 
 def main(window):
-    running = True
     fullscreen = False
+    global running
     global paused, screen, menu_option_index, pause_option_index, pause_transition_pending, pause_transition_target, alternate_music
 
     play_bgm("game_alternate" if screen=="game" and alternate_music else screen)
@@ -588,7 +611,7 @@ def main(window):
             target_alpha = 255 if blackout_overlay.alpha_direction == 1 else 0
             blackout_overlay.alpha = lerp(blackout_overlay.alpha, target_alpha, 0.1)
 
-            if abs(blackout_overlay.alpha - target_alpha) < 1:
+            if abs(blackout_overlay.alpha - target_alpha) < 10:
                 blackout_overlay.alpha = target_alpha
                 if blackout_overlay.alpha_direction == -1:
                     blackout_overlay.alpha_changing = False
@@ -609,7 +632,6 @@ def main(window):
 
 
         if screen_change_ready:
-
             if screen == "menu":
                 set_option(menu_option_index, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
             elif paused and screen == "game":
@@ -641,27 +663,19 @@ def main(window):
 
                 elif event.key in (pygame.K_UP, pygame.K_DOWN) and (screen == "menu" or paused):
                     if event.key == pygame.K_UP:
-                        if menu_option_index > 0 and screen == "menu":
-                            menu_option_index = set_option(menu_option_index - 1, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
-                        elif pause_option_index > 0 and paused:
-                            pause_option_index = set_option(pause_option_index - 1, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")                            
+                        if screen == "menu":
+                            menu_option_index = set_option((menu_option_index - 1) % len(menu_options), menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
+                        elif paused:
+                            pause_option_index = set_option((pause_option_index - 1) % len(pause_options), pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")
                     elif event.key == pygame.K_DOWN:
-                        if menu_option_index < len(menu_options_keys)-1 and screen == "menu":
-                            menu_option_index = set_option(menu_option_index + 1, menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
-                        elif pause_option_index < len(pause_options_keys)-1 and paused:
-                            pause_option_index = set_option(pause_option_index + 1, pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")                            
+                        if screen == "menu":
+                            menu_option_index = set_option((menu_option_index + 1) % len(menu_options), menu_options, menu_options_keys, menu_options_text, menu_option_colors, "menu")
+                        elif paused:
+                            pause_option_index = set_option((pause_option_index + 1) % len(pause_options), pause_options, pause_options_keys, pause_options_text, pause_option_colors, "pause")                            
 
                 elif event.key in (pygame.K_SPACE, pygame.K_RETURN) and not blackout_overlay.alpha_changing and (screen == "menu" or paused or screen == "gameover"):
-                    if (menu_option == "Start" and screen == "menu") or (pause_option == "Back to Menu" and paused):
-                        change_screen_setup()
-                        if screen == "menu" or screen == "game":
-                            boss.pause_time = 30
-
-                    if pause_option == "Continue" and paused: 
-                        unpause_game()
-
-                    if menu_option == "Quit" and screen == "menu":
-                        running = False
+                    execute_options()
+                    
             if event.type == pygame.MOUSEMOTION and blackout_overlay.alpha < 50 and not pause_transition_pending:
                 if screen == "menu":
                     mouse_selection_change(event, menu_options, menu_options_keys, menu_option_index, menu_options_text, menu_option_colors, "menu")
@@ -674,7 +688,7 @@ def main(window):
 
 
                 
-        if not paused and not screen=="menu":
+        if not paused and screen == "game":
             player.loop(boss)
             boss.loop(player)
         draw(window, player, boss)
@@ -685,5 +699,4 @@ def main(window):
 
 
 if __name__ == "__main__":
-
     main(window)

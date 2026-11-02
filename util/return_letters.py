@@ -13,6 +13,10 @@ def return_letters():
     )
     letter_dict = {}
     for index, letter in enumerate(letter_list, start=1):
-        letter_dict[letter] = letters[f"image_{index}_row0"][0]
+        image = letters[f"image_{index}_row0"][0]
+        letter_dict[letter] = {
+            "image": image,
+            "width": image.get_bounding_rect().width+8,
+        }
         
     return letter_dict
