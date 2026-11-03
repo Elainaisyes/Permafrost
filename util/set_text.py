@@ -12,7 +12,7 @@ def get_line_width():
 
 
 def set_text(text, x, y, letters_dict, letter_size, window, group,
-             spacing, scale_factor, color=None, max_width=None, text_shadow=None):
+             spacing, scale_factor, color=None, max_width=None, text_shadow=None, word_spacing=0.6, use_fixed_spacing=False):
     global line_breaks
     global line_width
 
@@ -31,7 +31,7 @@ def set_text(text, x, y, letters_dict, letter_size, window, group,
 
         word_width = 0
         for character in word:
-            word_width += letters_dict[character]["width"] * scale_factor / spacing
+            word_width += (letters_dict[character]["width"] if not use_fixed_spacing else letter_size) * scale_factor / spacing
 
         if max_width is not None and cursor_x + word_width > x + max_width:
             max_line_width = max(max_line_width, cursor_x - x)
@@ -43,7 +43,7 @@ def set_text(text, x, y, letters_dict, letter_size, window, group,
             if character == " ":
                 advance = letter_size / spacing * scale_factor
             else:
-                advance = letters_dict[character]["width"] * scale_factor / spacing
+                advance = (letters_dict[character]["width"] if not use_fixed_spacing else letter_size) * scale_factor / spacing
 
             draw_x = cursor_x
 
@@ -75,6 +75,6 @@ def set_text(text, x, y, letters_dict, letter_size, window, group,
             cursor_x += advance
 
         if word_index < len(words) - 1:
-            cursor_x += letter_size * spacing * 0.6 * scale_factor
+            cursor_x += letter_size * spacing * word_spacing * scale_factor
 
     line_width = max(max_line_width, cursor_x - x)

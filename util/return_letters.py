@@ -16,7 +16,7 @@ def return_letters():
         image = letters[f"image_{index}_row0"][0]
         letter_dict[letter] = {
             "image": image,
-            "width": image.get_bounding_rect().width+8,
+            "width": image.get_bounding_rect().width+8 if letter not in {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9"} else 16
         }
         
     return letter_dict
