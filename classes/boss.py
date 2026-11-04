@@ -184,6 +184,7 @@ class Boss(pygame.sprite.Sprite):
         self.beam_state = "SWEEP"
         self.sweep_direction = 1
         self.wall_direction = -1
+        self.wall_bullet_speed = 3.5
         self.beam_angle = -165
         self.beam_angle_start_set = False
 
@@ -513,7 +514,7 @@ class Boss(pygame.sprite.Sprite):
                             play_sound(self.sparkle_sfx, 0.2)
                             Boss_Bullet(aura.rect.centerx + offset_x, aura.rect.centery + offset_y, self.round_bullet_sprites["Projectiles_round_bullet"][aura.bullet_color_index], self.window, 2.5, math.degrees(math.atan2(750//2-aura.rect.centery, 600//2-aura.rect.centerx)), 255, 1.5, "normal", 5, self.bullets)
 
-            if time_elapsed >= 10:
+            if time_elapsed >= 5:
               for aura in self.cranberry_auras:
                     if aura.activation_priority == 2:
                         aura.alpha = lerp(aura.alpha, 188, 0.1)
@@ -559,7 +560,7 @@ class Boss(pygame.sprite.Sprite):
 
                         self.create_beam(beam_cycle_frame, self.beam_angle)
                         if bullet_sweep_cycle_frame == 0 and self.shooting_beams:
-                            play_sound(self.basic_attack_sfx, 0.05)
+                            play_sound(self.basic_attack_sfx, 0.1)
                             self.spawn_beam_fogs(direction=self.sweep_direction)
 
                 if self.beam_state == "WALL":
@@ -567,7 +568,7 @@ class Boss(pygame.sprite.Sprite):
                     self.beam_angle = 90
 
                     at_left_edge = self.rect.centerx <= 55
-                    at_right_edge = self.rect.centerx >= 445
+                    at_right_edge = self.rect.centerx >= 495
                     at_destination = math.hypot(self.desired_x-self.rect.centerx, self.desired_y-self.rect.centery) <= 45
 
 
@@ -596,6 +597,8 @@ class Boss(pygame.sprite.Sprite):
                             self.wall_crossing = True
                             self.walls_remaining -= 1
                             self.wall_direction *= -1
+                            self.wall_bullet_speed = 3.5
+
 
                     elif self.wall_crossing:
                         if at_destination:
@@ -614,6 +617,7 @@ class Boss(pygame.sprite.Sprite):
                                 self.beam_state = "SWEEP"
                                 self.beam_angle_start_set = False
                                 self.wall_pause = None
+                                self.wall_bullet_speed = 3.5
                             else:
                                 self.wall_pause = pygame.time.get_ticks() + 1000
 
@@ -626,7 +630,7 @@ class Boss(pygame.sprite.Sprite):
                             self.wall_pause = None
 
                             if at_left_edge:
-                                self.set_desired_position(500, 150, 8)
+                                self.set_desired_position(550, 150, 8)
                             else:
                                 self.set_desired_position(0, 100, 8)
 
@@ -634,8 +638,9 @@ class Boss(pygame.sprite.Sprite):
                             self.shooting_beams = True
 
                 if bullet_wall_cycle_frame == 0 and self.shooting_beams and self.wall_crossing:
-                    play_sound(self.basic_attack_sfx, 0.1)
-                    self.spawn_beam_fogs(distance=85, angle_offset=90, spawn_at_boss=False, direction=self.wall_direction, sweep=False)
+                    play_sound(self.basic_attack_sfx, 0.15)
+                    self.wall_bullet_speed -= 0.15 if self.wall_bullet_speed > 2.5 else 0
+                    self.spawn_beam_fogs(speed=self.wall_bullet_speed, distance=85, angle_offset=90, spawn_at_boss=False, direction=self.wall_direction, sweep=False)
 
             if self.phase_time_elapsed % 30 and 2 > self.phase_time_elapsed > 0:
                 self.set_desired_position(300, 100)
@@ -819,7 +824,7 @@ class Boss(pygame.sprite.Sprite):
             self.spawn_fog(spawn_x_fog, spawn_y_fog, scale, self.beam_angle+angle_offset*direction, speed, 255, color_index, "bullet_fog", current_bullet_offset)
 
 
-    def spawn_fog(self, x, y, scale=3, angle=0, speed=0, start_alpha=255, color_index=1, type="fog", bullet_offset_amount=0):
+    def spawn_fog(self, x, y, scale=3, angle=0, speed=0, start_alpha=255, color_index=1, type="fog", bullet_offset_amount=0, bullet_minimum_speed=2.5):
         fog = Boss_Bullet(x, y, self.fog_sprites["Projectiles_fog"][color_index], self.window, 0, 0, start_alpha, scale, type, 0, self.fogs)
         fog.rect.center = (round(x), round(y))
         fog.bullet_spawned = False
@@ -827,6 +832,7 @@ class Boss(pygame.sprite.Sprite):
         fog.bullet_speed = speed
         fog.bullet_offset_amount = bullet_offset_amount
         fog.color_index = color_index        
+        fog.bullet_minimum_speed = bullet_minimum_speed
 
     def draw(self):
         self.particles.draw(self.window)

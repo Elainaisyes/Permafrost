@@ -44,6 +44,8 @@ phase_timer_text = pygame.sprite.Group()
 spellcard_text = pygame.sprite.Group()
 
 title_text = pygame.sprite.Group()
+gameover_title_text = pygame.sprite.Group()
+
 menu_options_text = pygame.sprite.Group()
 pause_options_text = pygame.sprite.Group()
 gameover_options_text = pygame.sprite.Group()
@@ -55,7 +57,7 @@ paused = False
 pause_transition_pending = False
 pause_transition_target = None
 
-screen = "gameover"
+screen = "menu"
 alternate_music = True
 
 stars = pygame.sprite.Group()
@@ -234,7 +236,7 @@ gameover_specs = [
     ("Back to Menu", 300, -1/3, "Hurt", 1.35, 1.75),
 ]
 
-set_text("GAME OVER", 235, 40, *DEFAULT_TEXT_SETUP, title_text, 0.9, 2.5, (200,200,200), text_shadow=(3, 3, (200,200,200, 120)), word_spacing=2)
+set_text("GAME OVER", 235, 40, *DEFAULT_TEXT_SETUP, gameover_title_text, 0.9, 2.5, (200,200,200), text_shadow=(3, 3, (200,200,200, 120)), word_spacing=2)
 gameover_options, gameover_options_keys, gameover_option_colors = build_menu_options(gameover_specs, 650, 220, gameover_options_text, "Restart", primary_color=(200,200,200), secondary_color=(200,200,200,140))
 
 option_bar = Bar(menu_options["Start"]["x"]-5, menu_options["Start"]["y"]+35, round(menu_options["Start"]["width"]+20), 7, (255,255,255), window, is_gradient=True, gradient_start_color=(200,200,255,255), gradient_end_color=(220,220,255,255), border_radius=100)
@@ -387,17 +389,18 @@ def draw (window, player, boss):
         pause_options_text.draw(window)
     elif screen == "menu":
         menu_background.draw()
+        title_text.draw(window)
         menu_options_text.draw(window)
     elif screen == "gameover":
         gameover_background.draw()
         gameover_options_text.draw(window)
+        gameover_title_text.draw(window)
 
     if screen == "game" or screen == "menu" or screen == "gameover":
         if screen != "game":
             frost_aura.draw()
             cirno_portrait_particles.draw(window)
             cirno_portrait.draw()
-            title_text.draw(window)
         option_bar.particles.draw(window)
         option_bar.draw()
         option_indicator.draw()
@@ -507,19 +510,19 @@ def main(window):
                 spellcard_background.alpha = lerp(spellcard_background.alpha, 150, 0.1)
                 spellcard_background.image.set_alpha(int(spellcard_background.alpha))
 
-        if screen == "menu":
-            for letter in title_text:
+        if screen == "menu" or screen == "gameover":
+            for letter in gameover_title_text if screen == "gameover" else title_text:
                 if random.randint(1,3) != 3:
                     continue
                 Particle(random.randint(round(letter.x_pos), round(letter.x_pos+letter.image.get_width())), letter.y_pos+3, random.randint(20,40)/10, -random.randint(45,135), 1, 10, (255,255,255), option_bar.particles)
 
         if last_title_color_offset != title_color_offset:
-            title_text.empty()
+            title_text.empty() if screen == "menu" else gameover_title_text.empty()
             if screen == "menu":
                 set_text("TOUHOU EIKYUUTOUDO", 110, 20+title_color_offset/3, *DEFAULT_TEXT_SETUP, title_text, 1.2, 2.5, (200 + title_color_offset, 200 + title_color_offset, 255, 255), text_shadow=(3, 3, (220 - title_color_offset, 220 - title_color_offset, 255, 120)), word_spacing=0.8)
                 set_text("PERMAFROST", 110+180, 70+title_color_offset/3, *DEFAULT_TEXT_SETUP, title_text, 1.2, 2.5, (200 + title_color_offset, 200 + title_color_offset, 255, 255), text_shadow=(3, 3, (220 - title_color_offset, 220 - title_color_offset, 255, 120)))
             else:
-                set_text("GAME OVER", 235, 40+title_color_offset/3, *DEFAULT_TEXT_SETUP, title_text, 0.9, 2.5, (255, 150 - title_color_offset, 150 - title_color_offset, 255), text_shadow=(3, 3, (200 - title_color_offset, 200 - title_color_offset, 200 - title_color_offset, 120)), word_spacing=2)
+                set_text("GAME OVER", 235, 40+title_color_offset/3, *DEFAULT_TEXT_SETUP, gameover_title_text, 0.9, 2.5, (255, 150 - title_color_offset, 150 - title_color_offset, 255), text_shadow=(3, 3, (200 - title_color_offset, 200 - title_color_offset, 200 - title_color_offset, 120)), word_spacing=2)
             last_title_color_offset = title_color_offset
         else:
             title_color_offset += title_color_offset_direction/2
